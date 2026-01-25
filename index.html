@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProtonDev | El Núcleo de tu Negocio Digital</title>
+
+    <!-- Fonts: Montserrat & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Montserrat:wght@400;600;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="dark-theme">
+
+    <!-- Navigation -->
+    <nav class="navbar glass-effect">
+        <div class="container nav-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <div class="orbit"></div>
+                    <div class="nucleus"></div>
+                    <span class="code-bracket">&lt;/&gt;</span>
+                </div>
+                <span class="logo-text">PROTON<span class="highlight">DEV</span></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#hero">Inicio</a></li>
+                <li><a href="#services">Servicios</a></li>
+                <li><a href="#portfolio">Portafolio</a></li>
+                <li><a href="#about">Nosotros</a></li>
+                <li><a href="https://wa.me/573236022139" target="_blank" class="btn-nav">Cotizar</a></li>
+            </ul>
+            <div class="mobile-toggle" id="mobileToggle">
+                <i class="ph ph-list"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header id="hero" class="hero-section">
+        <canvas id="heroCanvas"></canvas>
+        <div class="container hero-content">
+            <div class="hero-text">
+                <p class="hero-badge"><i class="ph ph-lightning"></i> Desarrollo High-Tech</p>
+                <h1 class="animate-text">EL NÚCLEO DE TU <br><span class="text-gradient">NEGOCIO DIGITAL</span></h1>
+                <p class="hero-sub animate-text delay-1">Transformamos ideas en sistemas robustos, escalables y veloces.
+                    Tu socio tecnológico para el futuro.</p>
+                <div class="hero-actions animate-text delay-2">
+                    <a href="#services" class="btn btn-primary">Ver Servicios</a>
+                    <a href="https://wa.me/573236022139" target="_blank" class="btn btn-outline">Consultar</a>
+                </div>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            <i class="ph ph-caret-double-down"></i>
+        </div>
+    </header>
+
+    <!-- ... (rest of file) ... -->
+
+
+    <section id="about" class="section-padding dark-bg">
+        <div class="container grid-2-col">
+            <div class="about-visual">
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <pre><code class="language-js">
+const protonDev = {
+  mission: "Build the Future",
+  core: ["Stability", "Speed"],
+  status: "Ready to Launch",
+  execute: () => {
+    return "Impact";
+  }
+};
+                    </code></pre>
+                </div>
+            </div>
+            <div class="about-text">
+                <h2 class="section-title">SOMOS <span class="highlight">PROTONDEV</span></h2>
+                <p>Más que programadores, somos arquitectos digitales. Entendemos que el software es el corazón de las
+                    empresas modernas.</p>
+                <ul class="feature-list">
+                    <li><i class="ph ph-check-circle"></i> Soluciones a medida, sin plantillas genéricas.</li>
+                    <li><i class="ph ph-check-circle"></i> Enfoque en performance y escalabilidad.</li>
+                    <li><i class="ph ph-check-circle"></i> Metodologías ágiles y comunicación transparente.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="section-padding relative">
+        <div class="bg-glow"></div>
+        <div class="container">
+            <div class="section-header text-center">
+                <h2 class="section-title">NUESTROS <span class="text-gradient">SERVICIOS</span></h2>
+                <p class="section-desc">Ingeniería digital de precisión para Web y Móvil.</p>
+            </div>
+
+            <div class="services-tabs">
+                <button class="tab-btn active" data-target="web">Desarrollo Web</button>
+                <button class="tab-btn" data-target="mobile">Apps Móviles</button>
+            </div>
+
+            <div class="services-grid active" id="web-services">
+                <!-- Web Service Cards -->
+                <div class="service-card" onclick="openService('landing')">
+                    <i class="ph ph-monitor service-icon"></i>
+                    <h3>Landing Pages</h3>
+                    <p>Páginas de alto impacto orientadas a conversión. Diseño persuasivo y carga instantánea.</p>
+                    <span class="link-text">Ver Detalles <i class="ph ph-arrow-right"></i></span>
+                </div>
+                <div class="service-card" onclick="openService('corporate')">
+                    <i class="ph ph-buildings service-icon"></i>
+                    <h3>Sitios Corporativos</h3>
+                    <p>Presencia digital profesional para empresas que buscan transmitir confianza y solidez.</p>
+                    <span class="link-text">Ver Detalles <i class="ph ph-arrow-right"></i></span>
+                </div>
+                <div class="service-card" onclick="openService('ecommerce')">
+                    <i class="ph ph-shopping-cart service-icon"></i>
+                    <h3>E-commerce</h3>
+                    <p>Tiendas en línea robustas, seguras y autoadministrables. Pasarelas de pago integradas.</p>
+                    <span class="link-text">Ver Detalles <i class="ph ph-arrow-right"></i></span>
+                </div>
+                <div class="service-card" onclick="openService('dashboard')">
+                    <i class="ph ph-chart-bar service-icon"></i>
+                    <h3>Dashboards & SAAS</h3>
+                    <p>Aplicaciones web complejas para gestión interna, análisis de datos y administración.</p>
+                    <span class="link-text">Ver Detalles <i class="ph ph-arrow-right"></i></span>
+                </div>
+            </div>
+
+            <div class="services-grid" id="mobile-services" style="display:none;">
+                <!-- Mobile Service Cards -->
+                <div class="service-card" onclick="openService('ios')">
+                    <i class="ph ph-apple-logo service-icon"></i>
+                    <h3>iOS Nativo</h3>
+                    <p>Apps optimizadas para el ecosistema Apple. Swift y SwiftUI para máximo rendimiento.</p>
+                    <span class="link-text">Ver Detalles <i class="ph ph-arrow-right"></i></span>
+                </div>
+                <div class="service-card" onclick="openService('android')">
+                    <i class="ph ph-android-logo service-icon"></i>
+                    <h3>Android Nativo</h3>
+                    <p>Desarrollo Kotlin robusto para alcanzar a la mayor cuota de mercado.</p>
+                    <span class="link-text">Ver Detalles <i class="ph ph-arrow-right"></i></span>
+                </div>
+                <div class="service-card" onclick="openService('hybrid')">
+                    <i class="ph ph-devices service-icon"></i>
+                    <h3>Multiplataforma</h3>
+                    <p>React Native o Flutter. Una sola base de código, dos plataformas, menor costo.</p>
+                    <span class="link-text">Ver Detalles <i class="ph ph-arrow-right"></i></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technologies Section -->
+    <section id="tech" class="section-padding">
+        <div class="container">
+            <h2 class="section-title text-center">STACK <span class="highlight">TECNOLÓGICO</span></h2>
+            <div class="tech-grid">
+                <div class="tech-item"><i class="ph ph-code"></i><span>HTML5/CSS3</span></div>
+                <div class="tech-item"><i class="ph ph-brackets-curly"></i><span>React.js</span></div>
+                <div class="tech-item"><i class="ph ph-file-js"></i><span>Node.js</span></div>
+                <div class="tech-item"><i class="ph ph-database"></i><span>SQL/NoSQL</span></div>
+                <div class="tech-item"><i class="ph ph-device-mobile"></i><span>Flutter</span></div>
+                <div class="tech-item"><i class="ph ph-cloud"></i><span>AWS</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="section-padding dark-bg">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">CASOS DE <span class="text-gradient">ÉXITO</span></h2>
+            </div>
+            <div class="portfolio-grid">
+                <!-- Project 1: Condor -->
+                <div class="project-card">
+                    <div class="project-preview">
+                        <img src="assets/condor_preview.png" alt="Condor Pirotecnia"
+                            style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <div class="project-info">
+                        <span class="project-cat">Web Corporativa / Catálogo</span>
+                        <h3>Condor Pirotecnia</h3>
+                        <p>Catálogo digital responsivo con animaciones de partículas y modo oscuro para empresa de
+                            pirotecnia.</p>
+                        <a href="pirotecnia/index.html" class="btn-link" target="_blank">Ver Proyecto <i
+                                class="ph ph-arrow-up-right"></i></a>
+                    </div>
+                </div>
+
+                <!-- Project 2: BigStore -->
+                <div class="project-card">
+                    <div class="project-preview">
+                        <img src="assets/bigstore_preview.png" alt="BigStore.uno"
+                            style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <div class="project-info">
+                        <span class="project-cat">E-commerce</span>
+                        <h3>BigStore.uno</h3>
+                        <p>Plataforma de comercio electrónico escalable con gestión de inventario y pagos.</p>
+                        <a href="https://bigstore.uno" class="btn-link" target="_blank">Ver Proyecto <i
+                                class="ph ph-arrow-up-right"></i></a>
+                    </div>
+                </div>
+
+                <!-- Project 3: Opera Soluciones -->
+                <div class="project-card">
+                    <div class="project-preview">
+                        <img src="assets/opera_preview.png" alt="Opera Soluciones"
+                            style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <div class="project-info">
+                        <span class="project-cat">Gestión Integral</span>
+                        <h3>Opera Soluciones</h3>
+                        <p>Sistema de gestión para empresas de mantenimiento, logística y construcción.</p>
+                        <a href="https://opera-soluciones.vercel.app/" class="btn-link" target="_blank">Ver Proyecto <i
+                                class="ph ph-arrow-up-right"></i></a>
+                    </div>
+                </div>
+
+                <!-- Project 4: JujoStream -->
+                <div class="project-card">
+                    <div class="project-preview">
+                        <img src="assets/jujostream_preview.png" alt="JujoStream"
+                            style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <div class="project-info">
+                        <span class="project-cat">Plataforma Digital</span>
+                        <h3>JujoStream</h3>
+                        <p>Plataforma para venta y distribución de cuentas de streaming y entretenimiento digital.</p>
+                        <a href="https://jujostream.com.co/" class="btn-link" target="_blank">Ver Proyecto <i
+                                class="ph ph-arrow-up-right"></i></a>
+                    </div>
+                </div>
+
+                <!-- Project 5: Palacio Digital -->
+                <div class="project-card">
+                    <div class="project-preview">
+                        <img src="assets/palacio_preview.png" alt="Palacio Digital"
+                            style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <div class="project-info">
+                        <span class="project-cat">E-commerce Streaming</span>
+                        <h3>Palacio Digital</h3>
+                        <p>Tienda online de cuentas premium y entretenimiento digital. Proveedores directos.</p>
+                        <a href="https://palaciodigital.net/" class="btn-link" target="_blank">Ver Proyecto <i
+                                class="ph ph-arrow-up-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Process Section -->
+    <section id="process" class="section-padding">
+        <div class="container">
+            <h2 class="section-title text-center">NUESTRO <span class="highlight">PROCESO</span></h2>
+            <div class="process-steps">
+                <div class="step">
+                    <div class="step-num">01</div>
+                    <h4>Descubrimiento</h4>
+                    <p>Entendemos tu negocio.</p>
+                </div>
+                <div class="step">
+                    <div class="step-num">02</div>
+                    <h4>Diseño</h4>
+                    <p>Prototipado UX/UI.</p>
+                </div>
+                <div class="step">
+                    <div class="step-num">03</div>
+                    <h4>Desarrollo</h4>
+                    <p>Código limpio y ágil.</p>
+                </div>
+                <div class="step">
+                    <div class="step-num">04</div>
+                    <h4>Lanzamiento</h4>
+                    <p>Despliegue y soporte.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="section-padding contact-bg">
+        <div class="container narrow-container">
+            <h2 class="section-title text-center">INICIA TU <span class="text-gradient">TRANSFORMACIÓN</span></h2>
+            <p class="text-center section-desc">Cuéntanos sobre tu proyecto. Si puedes imaginarlo, podemos programarlo.
+            </p>
+
+            <form class="glass-form">
+                <div class="input-group">
+                    <input type="text" placeholder="Nombre" required>
+                </div>
+                <div class="input-group">
+                    <input type="email" placeholder="Email Corporativo" required>
+                </div>
+                <div class="input-group">
+                    <select>
+                        <option value="">Tipo de Proyecto</option>
+                        <option value="web">Desarrollo Web</option>
+                        <option value="mobile">App Móvil</option>
+                        <option value="ecommerce">E-commerce</option>
+                        <option value="other">Otro</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <textarea rows="5" placeholder="Detalles del proyecto" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary full-width">Enviar Solicitud <i
+                        class="ph ph-paper-plane-right"></i></button>
+            </form>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-content">
+            <div class="brand">PROTON<span class="highlight">DEV</span></div>
+            <div class="socials">
+                <a href="#"><i class="ph ph-linkedin-logo"></i></a>
+                <a href="#"><i class="ph ph-instagram-logo"></i></a>
+                <a href="#"><i class="ph ph-github-logo"></i></a>
+            </div>
+            <p>&copy; 2026 ProtonDev. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Service Detail Modal Overlay -->
+    <div id="serviceModal" class="modal-overlay">
+        <div class="modal-wrapper glassy-modal">
+            <button class="close-modal" id="closeModal">&times;</button>
+            <div class="modal-inner" id="modalContent">
+                <!-- Dynamic Content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/573236022139" target="_blank" class="whatsapp-float">
+        <i class="ph ph-whatsapp-logo"></i>
+    </a>
+
+    <script src="js/main.js"></script>
+</body>
+
+</html>
