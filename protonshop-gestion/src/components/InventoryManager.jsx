@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, X, Image as ImageIcon, Save, Loader2, Video, Link as LinkIcon, Download, FileJson, Code } from 'lucide-react';
-import { getAdminProducts, getCategories, saveProduct, deleteProduct, uploadProductImage } from '../store';
+import { Plus, Edit, Trash2, Search, X, Image as ImageIcon, Save, Loader2, Video, Link as LinkIcon, Download, FileJson, Code, Eye } from 'lucide-react';
+import { getAdminProducts, getCategories, saveProduct, deleteProduct, uploadProductImage, getVisitCount } from '../store';
 import { improveDescription } from '../services/gemini';
 import { Sparkles } from 'lucide-react'; // Assuming Sparkles icon exists or use generic
 
@@ -11,6 +11,7 @@ const InventoryManager = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingProduct, setEditingProduct] = useState(null);
+    const [totalVisits, setTotalVisits] = useState(0);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -41,6 +42,7 @@ const InventoryManager = () => {
 
     useEffect(() => {
         loadData();
+        getVisitCount().then(count => setTotalVisits(count));
     }, []);
 
     const loadData = async () => {
@@ -526,7 +528,28 @@ const InventoryManager = () => {
         <div className="inventory-view">
             <div className="card-header">
                 <h2>Inventario</h2>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+
+                    {/* Visitor Stats Widget */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.5rem 1rem',
+                        backgroundColor: 'var(--bg-pure)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        marginRight: '1rem'
+                    }}>
+                        <div style={{ padding: '0.4rem', borderRadius: '50%', backgroundColor: 'rgba(56, 189, 248, 0.1)' }}>
+                            <Eye size={18} color="#0ea5e9" />
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Visitas Web</div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: '800', lineHeight: 1 }}>{totalVisits.toLocaleString()}</div>
+                        </div>
+                    </div>
+
                     <div className="search-box" style={{ position: 'relative' }}>
                         <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                         <input

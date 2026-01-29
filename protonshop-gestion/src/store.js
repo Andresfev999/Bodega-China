@@ -146,3 +146,17 @@ export const getStats = async () => {
 
     return { totalSales, pendingOrders };
 };
+
+export const getVisitCount = async () => {
+    try {
+        const { count, error } = await supabase
+            .from('visits')
+            .select('*', { count: 'exact', head: true });
+
+        if (error) throw error;
+        return count || 0;
+    } catch (error) {
+        console.warn('Failed to get visit count:', error);
+        return 0;
+    }
+};
