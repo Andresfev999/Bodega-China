@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Search, X, Image as ImageIcon, Save, Loader2, Video, Link as LinkIcon, Download, FileJson, Code } from 'lucide-react';
 import { getAdminProducts, getCategories, saveProduct, deleteProduct, uploadProductImage } from '../store';
+import { improveDescription } from '../services/gemini';
+import { Sparkles } from 'lucide-react'; // Assuming Sparkles icon exists or use generic
 
 const InventoryManager = () => {
     const [products, setProducts] = useState([]);
@@ -25,6 +27,9 @@ const InventoryManager = () => {
         external_id: ''
     });
     const [uploading, setUploading] = useState(false);
+    const [improving, setImproving] = useState(false);
+    const [dragActive, setDragActive] = useState(false);
+    const [galleryDragActive, setGalleryDragActive] = useState(false);
 
     // JSON Import State
     const [showJsonImport, setShowJsonImport] = useState(false);
@@ -85,60 +90,38 @@ const InventoryManager = () => {
             if (!jsonInput.trim()) return;
             const data = JSON.parse(jsonInput);
 
-            const normalize = (item) => ({
-                name: item.name || item.title || item.nombre || item.titulo || '',
-                price: Number(item.price || item.valor || item.precio || item.precio_sugerido || item.sugerido || 0),
-                cost_price: Number(item.cost_price || item.costo || item.precio_proveedor || item.proveedor_precio || 0),
-                sale_price: Number(item.sale_price || item.salePrice || item.precio_oferta || 0),
-                category: item.category || item.categoria || '',
-                image: item.image || item.imagen || item.img || '',
-                description: item.description || item.descripcion || item.desc || '',
-                stock: Number(item.stock || item.cantidad || 0),
-                gallery: Array.isArray(item.gallery) ? item.gallery : [],
-                supplier: item.supplier || item.proveedor || '',
-                external_id: item.external_id || item.id_externo || item.sku || item.id || ''
-            });
+            const normalize = (item) => {
+                const parsePrice = (val) => {
+                    if (typeof val === 'number') return val;
+                    if (!val) return 0;
+                    // Simple cleaning: remove everything except digits. 
+                    // Adjust this if you need decimals (e.g. replace ',' with '.' before stripping)
+                    return Number(String(val).replace(/[^\d]/g, ''));
+                };
 
-            if (Array.isArray(data)) {
-                if (!window.confirm(`¿Vas a importar ${data.length} productos directamente al inventario?`)) return;
+                return {
+                    name: item.name || item.title || item.nombre || item.titulo || item['Título'] || '',
+                    price: parsePrice(item.price || item.valor || item.precio || item.precio_sugerido || item.sugerido || item['Precio'] || 0),
+                    cost_price: parsePrice(item.cost_price || item.costo || item.precio_proveedor || item.proveedor_precio || 0),
+                    sale_price: parsePrice(item.sale_price || item.salePrice || item.precio_oferta || 0),
+                    category: item.category || item.categoria || (item['Atributos'] && item['Atributos']['Categorías'] ? item['Atributos']['Categorías'][0] : '') || '',
+                    image: item.image || item.imagen || item.img || (Array.isArray(item['Imágenes']) ? item['Imágenes'][0] : item['Imágenes']) || '',
+                    description: item.description || item.descripcion || item.desc || item['Descripción'] || '',
+                    stock: Number(item.stock || item.cantidad || 0),
+                    gallery: Array.isArray(item.gallery) ? item.gallery : (Array.isArray(item['Imágenes']) ? item['Imágenes'].slice(1) : []),
+                    supplier: item.supplier || item.proveedor || '',
+                    external_id: item.external_id || item.id_externo || item.sku || item.id || (item['Atributos'] ? item['Atributos']['SKU'] : '') || ''
+                };
+            };
 
-                setUploading(true);
-                let successCount = 0;
-                let errors = [];
+            const items = Array.isArray(data) ? data : [data];
+            const normalizedItems = items.map(normalize);
 
-                for (const item of data) {
-                    try {
-                        const product = normalize(item);
-                        // Validate essential fields
-                        if (!product.name) continue;
-
-                        // Sanitize empty strings to null
-                        const payload = {
-                            ...product,
-                            external_id: product.external_id && String(product.external_id).trim() !== '' ? String(product.external_id) : null,
-                            supplier: product.supplier && String(product.supplier).trim() !== '' ? String(product.supplier) : null
-                        };
-
-                        await saveProduct(payload);
-                        successCount++;
-                    } catch (err) {
-                        errors.push(item.name || 'Item desconocido');
-                        console.error(err);
-                    }
-                }
-
-                await loadProducts();
-                setUploading(false);
-                setShowJsonImport(false);
-                setJsonInput('');
-
-                let msg = `¡Importación masiva completada! Agregados: ${successCount}.`;
-                if (errors.length > 0) msg += `\nFallaron: ${errors.join(', ')}`;
-                alert(msg);
-
+            if (normalizedItems.length > 1) {
+                setJsonPreviewData(normalizedItems);
             } else {
-                // Single object -> Fill form (Existing behavior)
-                const newProduct = normalize(data);
+                // Single object -> Fill form
+                const newProduct = normalizedItems[0];
                 setFormData(prev => ({ ...prev, ...newProduct }));
                 setShowJsonImport(false);
                 setJsonInput('');
@@ -150,6 +133,53 @@ const InventoryManager = () => {
             console.error(error);
             alert('Error al leer JSON: ' + error.message);
         }
+    };
+
+    const handleConfirmBatchImport = async () => {
+        if (!window.confirm(`¿Vas a importar ${jsonPreviewData.length} productos directamente al inventario?`)) return;
+
+        setUploading(true);
+        let successCount = 0;
+        let errors = [];
+
+        for (const product of jsonPreviewData) {
+            try {
+                if (!product.name) continue;
+
+                const payload = {
+                    ...product,
+                    external_id: product.external_id && String(product.external_id).trim() !== '' ? String(product.external_id) : null,
+                    supplier: product.supplier && String(product.supplier).trim() !== '' ? String(product.supplier) : null
+                };
+
+                await saveProduct(payload);
+                successCount++;
+            } catch (err) {
+                errors.push(product.name || 'Item desconodido');
+                console.error(err);
+            }
+        }
+
+        await loadProducts();
+        setUploading(false);
+        setJsonPreviewData([]);
+        setShowJsonImport(false);
+        setJsonInput('');
+
+        let msg = `¡Importación completada! Agregados: ${successCount}.`;
+        if (errors.length > 0) msg += `\nFallaron: ${errors.length}`;
+        alert(msg);
+    };
+
+    const handleJsonFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            setJsonInput(event.target.result);
+        };
+        reader.readAsText(file);
     };
 
     const handleCopyExample = () => {
@@ -384,15 +414,85 @@ const InventoryManager = () => {
         }));
     };
 
+    // Drag and Drop Handlers
+    const handleDrag = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setDragActive(true);
+        } else if (e.type === "dragleave") {
+            setDragActive(false);
+        }
+    };
+
+    const handleDrop = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+
+            // Reutilizar lógica de upload
+            setUploading(true);
+            try {
+                const url = await uploadProductImage(file);
+                setFormData(prev => ({ ...prev, image: url }));
+            } catch (error) {
+                alert('Error subiendo imagen arrastrada: ' + error.message);
+            } finally {
+                setUploading(false);
+            }
+        }
+    };
+
+    const handleGalleryDrag = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setGalleryDragActive(true);
+        } else if (e.type === "dragleave") {
+            setGalleryDragActive(false);
+        }
+    };
+
+    const handleGalleryDrop = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setGalleryDragActive(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            setUploading(true);
+            try {
+                const files = Array.from(e.dataTransfer.files);
+                const uploadPromises = files.map(file => uploadProductImage(file));
+                const urls = await Promise.all(uploadPromises);
+
+                setFormData(prev => ({
+                    ...prev,
+                    gallery: [...(prev.gallery || []), ...urls]
+                }));
+            } catch (error) {
+                alert('Error subiendo imágenes a la galería: ' + error.message);
+            } finally {
+                setUploading(false);
+            }
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setUploading(true);
         try {
-            // Prepare data for saving: convert empty strings to null to avoid unique constraint violations
+            // Prepare data for saving: convert empty strings to null/numbers
             const payload = {
                 ...formData,
-                external_id: formData.external_id.trim() === '' ? null : formData.external_id,
-                supplier: formData.supplier.trim() === '' ? null : formData.supplier
+                price: (formData.price === '' || formData.price === null) ? 0 : Number(formData.price),
+                cost_price: (formData.cost_price === '' || formData.cost_price === null) ? 0 : Number(formData.cost_price),
+                sale_price: (formData.sale_price === '' || formData.sale_price === null) ? null : Number(formData.sale_price),
+                stock: (formData.stock === '' || formData.stock === null) ? 0 : Number(formData.stock),
+                external_id: (!formData.external_id || String(formData.external_id).trim() === '') ? null : String(formData.external_id).trim(),
+                supplier: (!formData.supplier || String(formData.supplier).trim() === '') ? null : String(formData.supplier).trim()
             };
 
             await saveProduct(editingProduct ? { id: editingProduct.id, ...payload } : payload);
@@ -539,6 +639,7 @@ const InventoryManager = () => {
                                                                     <th style={{ padding: '0.5rem' }}>Precio</th>
                                                                     <th style={{ padding: '0.5rem' }}>Costo</th>
                                                                     <th style={{ padding: '0.5rem' }}>Prov.</th>
+                                                                    <th style={{ padding: '0.5rem' }}>IMG</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
@@ -548,6 +649,7 @@ const InventoryManager = () => {
                                                                         <td style={{ padding: '0.5rem' }}>${item.price}</td>
                                                                         <td style={{ padding: '0.5rem', color: '#d97706' }}>${item.cost_price}</td>
                                                                         <td style={{ padding: '0.5rem' }}>{item.supplier}</td>
+                                                                        <td style={{ padding: '0.5rem' }}>{item.image ? '✅' : '❌'}</td>
                                                                     </tr>
                                                                 ))}
                                                             </tbody>
@@ -574,8 +676,12 @@ const InventoryManager = () => {
                                                 </div>
                                             ) : (
                                                 <>
+                                                    <div style={{ marginBottom: '0.5rem' }}>
+                                                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: '#64748b' }}>Subir archivo JSON (del Extractor o respaldo):</label>
+                                                        <input type="file" accept=".json" onChange={handleJsonFileUpload} style={{ fontSize: '0.8rem' }} />
+                                                    </div>
                                                     <textarea
-                                                        placeholder='Pega tu JSON aquí... Ej: { "name": "Zapato", "price": 50000 ... } o [{...}, {...}]'
+                                                        placeholder='O pega tu JSON aquí... Ej: { "name": "Zapato", ... }'
                                                         rows={5}
                                                         value={jsonInput}
                                                         onChange={(e) => setJsonInput(e.target.value)}
@@ -608,14 +714,33 @@ const InventoryManager = () => {
                             <div>
                                 <label>Imagen del Producto</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <div style={{ border: '2px dashed var(--border)', borderRadius: '8px', padding: '1rem', textAlign: 'center', cursor: 'pointer', position: 'relative', backgroundColor: '#f8fafc' }}>
+                                    <div
+                                        onDragEnter={handleDrag}
+                                        onDragLeave={handleDrag}
+                                        onDragOver={handleDrag}
+                                        onDrop={handleDrop}
+                                        style={{
+                                            border: `2px dashed ${dragActive ? 'var(--primary)' : 'var(--border)'}`,
+                                            borderRadius: '8px',
+                                            padding: '1rem',
+                                            textAlign: 'center',
+                                            cursor: 'pointer',
+                                            position: 'relative',
+                                            backgroundColor: dragActive ? 'rgba(56, 189, 248, 0.1)' : '#f8fafc',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
                                         {formData.image ? (
                                             <div style={{ position: 'relative' }}>
                                                 <img src={formData.image} alt="Preview" style={{ maxHeight: '150px', margin: '0 auto', display: 'block', borderRadius: '4px' }}
                                                     onError={(e) => e.target.style.display = 'none'} />
                                             </div>
                                         ) : (
-                                            <div style={{ color: 'var(--text-muted)' }}><ImageIcon style={{ marginBottom: '0.5rem' }} /><br />Click para subir imagen</div>
+                                            <div style={{ color: dragActive ? 'var(--primary)' : 'var(--text-muted)' }}>
+                                                <ImageIcon style={{ marginBottom: '0.5rem' }} />
+                                                <br />
+                                                {dragActive ? "¡Suelta la imagen aquí!" : "Click para subir o arrastra una imagen aquí"}
+                                            </div>
                                         )}
                                         <input type="file" onChange={handleImageUpload} style={{ display: 'none' }} accept="image/*" id="img-upload" />
                                         <label htmlFor="img-upload" style={{ display: 'block', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, cursor: 'pointer' }}></label>
@@ -662,10 +787,28 @@ const InventoryManager = () => {
                                             </div>
                                         );
                                     })}
-                                    <div style={{ width: '60px', height: '60px', border: '1px dashed var(--border)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
-                                        <Plus size={20} color="var(--text-muted)" />
-                                        <input type="file" onChange={handleGalleryUpload} style={{ display: 'none' }} accept="image/*,video/mp4,video/webm" id="gallery-upload" />
-                                        <label htmlFor="gallery-upload" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: 'pointer' }} title="Subir archivo"></label>
+                                    <div
+                                        onDragEnter={handleGalleryDrag}
+                                        onDragLeave={handleGalleryDrag}
+                                        onDragOver={handleGalleryDrag}
+                                        onDrop={handleGalleryDrop}
+                                        style={{
+                                            width: '60px',
+                                            height: '60px',
+                                            border: `2px dashed ${galleryDragActive ? 'var(--primary)' : 'var(--border)'}`,
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            position: 'relative',
+                                            backgroundColor: galleryDragActive ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <Plus size={20} color={galleryDragActive ? 'var(--primary)' : 'var(--text-muted)'} />
+                                        <input type="file" onChange={handleGalleryUpload} style={{ display: 'none' }} accept="image/*,video/mp4,video/webm" id="gallery-upload" multiple />
+                                        <label htmlFor="gallery-upload" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: 'pointer' }} title="Subir archivo(s)"></label>
                                     </div>
                                     <div style={{ width: '60px', height: '60px', border: '1px solid var(--border)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backgroundColor: '#f1f5f9' }}
                                         onClick={() => {
@@ -732,8 +875,47 @@ const InventoryManager = () => {
                             </div>
 
                             <div>
-                                <label>Descripción</label>
-                                <textarea rows="3" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <label style={{ marginBottom: 0 }}>Descripción</label>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            if (!formData.name) return alert('Ingresa primero el nombre del producto');
+                                            setImproving(true);
+                                            try {
+                                                const improved = await improveDescription(formData.name, formData.description);
+                                                setFormData(prev => ({ ...prev, description: improved }));
+                                            } catch (error) {
+                                                alert('Error al mejorar descripción: ' + error.message);
+                                            } finally {
+                                                setImproving(false);
+                                            }
+                                        }}
+                                        disabled={improving}
+                                        style={{
+                                            background: 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '20px',
+                                            padding: '0.25rem 0.75rem',
+                                            fontSize: '0.75rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.25rem',
+                                            fontWeight: '600'
+                                        }}
+                                    >
+                                        <Sparkles size={12} />
+                                        {improving ? 'Generando...' : 'Mejorar con IA'}
+                                    </button>
+                                </div>
+                                <textarea
+                                    rows="5"
+                                    value={formData.description}
+                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                                />
                             </div>
 
                             <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', justifyContent: 'center' }} disabled={uploading}>
