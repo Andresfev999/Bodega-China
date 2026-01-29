@@ -148,3 +148,27 @@ export const getUserOrders = async (userId) => {
     if (error) throw error;
     return data;
 };
+
+// --- Visit Counter ---
+export const recordVisit = async () => {
+    try {
+        await supabase.from('visits').insert([{}]);
+    } catch (error) {
+        // Silent fail if table doesn't exist yet to avoid crashing app
+        console.warn('Visit recording failed (table might be missing):', error);
+    }
+};
+
+export const getVisitCount = async () => {
+    try {
+        const { count, error } = await supabase
+            .from('visits')
+            .select('*', { count: 'exact', head: true });
+
+        if (error) throw error;
+        return count || 0;
+    } catch (error) {
+        console.warn('Failed to get visit count:', error);
+        return 0;
+    }
+};

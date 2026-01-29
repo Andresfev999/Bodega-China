@@ -20,6 +20,10 @@ const ProductCard = ({ product, onAddToCart, onSelect }) => {
                         -{Math.round(((product.price - product.sale_price) / product.price) * 100)}%
                     </div>
                 )}
+                {/* Cash on Delivery Badge */}
+                <div style={styles.codBadge}>
+                    🚚 Pago Contraentrega
+                </div>
             </div>
             <div style={styles.info}>
                 <h3 style={styles.name}>{product.name}</h3>
@@ -150,6 +154,23 @@ const styles = {
         borderRadius: '4px',
         fontSize: '0.8rem',
         fontWeight: '700'
+    },
+    codBadge: {
+        position: 'absolute',
+        bottom: '0',
+        left: '0',
+        width: '100%',
+        backgroundColor: 'rgba(16, 185, 129, 0.9)', // Green with opacity
+        color: 'white',
+        padding: '0.4rem',
+        fontSize: '0.8rem',
+        fontWeight: '600',
+        textAlign: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.25rem',
+        backdropFilter: 'blur(2px)'
     }
 };
 

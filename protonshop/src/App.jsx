@@ -7,9 +7,11 @@ import CartModal from './components/CartModal';
 import AuthModal from './components/AuthModal';
 import UserProfile from './components/UserProfile';
 import CustomerOrders from './components/CustomerOrders';
-import { getStoreData, slugify } from './store';
+import { getStoreData, slugify, recordVisit, getVisitCount } from './store';
 import { supabase } from './supabase';
 import LandingPage from './components/LandingPage';
+import CashOnDeliveryBanner from './components/CashOnDeliveryBanner';
+import { Users } from 'lucide-react';
 
 function App() {
   const [data, setData] = useState({ products: [], categories: [] });
@@ -24,6 +26,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [user, setUser] = useState(null);
+  const [totalVisits, setTotalVisits] = useState(0);
 
   // Auth session handling
   useEffect(() => {
@@ -67,6 +70,9 @@ function App() {
 
   useEffect(() => {
     fetchData();
+    // Record visit and fetch total
+    recordVisit();
+    getVisitCount().then(count => setTotalVisits(count));
   }, []);
 
   // Handle URL deep linking
@@ -116,8 +122,10 @@ function App() {
         onOrdersToggle={() => { setIsOrdersView(!isOrdersView); setIsProfileView(false); setSelectedProduct(null); setIsLandingView(false); }}
         onSearch={setSearchQuery}
         searchQuery={searchQuery}
+        searchQuery={searchQuery}
         user={user}
       />
+      <CashOnDeliveryBanner />
 
       <AuthModal
         isOpen={isAuthOpen}
@@ -236,6 +244,10 @@ function App() {
             <p style={styles.footerTagline}>La tecnología se encuentra con el consumo.</p>
           </div>
           <p style={styles.copyright}>&copy; 2026 ProtonShop. Todos los derechos reservados.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            <Users size={14} />
+            <span>Visitas: {totalVisits.toLocaleString()}</span>
+          </div>
         </div>
       </footer>
     </div>
