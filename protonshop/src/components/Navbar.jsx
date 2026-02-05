@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Atom, Search, User, Menu, X, LogOut, UserCircle, Package } from 'lucide-react';
+import logoImg from '../assets/images/logo.avif';
 import { supabase } from '../supabase';
 
-const Navbar = ({ cartCount, onCartOpen, onAuthOpen, onProfileToggle, onOrdersToggle, onSearch, searchQuery, user }) => {
+const Navbar = ({ cartCount, onCartOpen, onAuthOpen, onProfileToggle, onOrdersToggle, onSearch, searchQuery, user, onCategoriesClick }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchVisible, setIsSearchVisible] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -17,17 +18,13 @@ const Navbar = ({ cartCount, onCartOpen, onAuthOpen, onProfileToggle, onOrdersTo
             <div className="container" style={styles.container}>
                 {/* Logo */}
                 <div style={styles.logoCont} onClick={() => window.location.reload()}>
-                    <div style={styles.iconBox}>
-                        <Atom size={24} color="var(--primary)" />
-                        <ShoppingCart size={14} color="var(--secondary)" style={styles.cartIcon} />
-                    </div>
-                    <span style={styles.logoText}>Proton<span style={{ color: 'var(--primary)' }}>Shop</span></span>
+                    <img src={logoImg} alt="Bodega China" style={styles.logoImage} />
                 </div>
 
                 {/* Desktop Nav */}
                 <div className="nav-links-desktop" style={styles.desktopLinks}>
                     <a href="#" style={styles.link} onClick={(e) => { e.preventDefault(); window.location.reload(); }}>Catálogo</a>
-                    <a href="#" style={styles.link}>Categorías</a>
+                    <a href="#" style={styles.link} onClick={(e) => { e.preventDefault(); onCategoriesClick(); }}>Categorías</a>
                 </div>
 
                 {/* Actions */}
@@ -103,9 +100,8 @@ const Navbar = ({ cartCount, onCartOpen, onAuthOpen, onProfileToggle, onOrdersTo
             {/* Mobile Menu */}
             {isMenuOpen && (
                 <div style={styles.mobileMenu}>
-                    <a href="#" style={styles.mobileLink}>Catálogo</a>
-                    <a href="#" style={styles.mobileLink}>Categorías</a>
-                    <a href="#" style={styles.mobileLink}>Ofertas Especiales</a>
+                    <a href="#" style={styles.mobileLink} onClick={() => window.location.reload()}>Catálogo</a>
+                    <a href="#" style={styles.mobileLink} onClick={() => { setIsMenuOpen(false); onCategoriesClick(); }}>Categorías</a>
                 </div>
             )}
         </nav>
@@ -135,30 +131,12 @@ const styles = {
         gap: '0.75rem',
         cursor: 'pointer'
     },
-    iconBox: {
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '40px',
-        height: '40px',
-        backgroundColor: '#00BFFF15',
-        borderRadius: '10px'
-    },
-    cartIcon: {
-        position: 'absolute',
-        bottom: '8px',
-        right: '8px',
-        filter: 'drop-shadow(0px 0px 2px rgba(0,0,0,0.2))'
-    },
-    logoText: {
-        fontSize: '1.5rem',
-        fontWeight: '700',
-        fontFamily: 'var(--font-headings)',
-        letterSpacing: '-0.5px'
+    logoImage: {
+        height: '50px',
+        width: 'auto',
+        objectFit: 'contain'
     },
     desktopLinks: {
-        display: 'flex',
         gap: '2.5rem'
     },
     link: {
@@ -258,7 +236,6 @@ const styles = {
         justifyContent: 'center'
     },
     mobileToggle: {
-        display: 'none',
         cursor: 'pointer'
     },
     mobileMenu: {

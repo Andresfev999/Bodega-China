@@ -2,10 +2,11 @@
 
 :root {
   /* Brand Colors */
-  --primary: #00BFFF;
-  /* Azul Cielo Vibrante */
-  --secondary: #FFD700;
-  /* Amarillo Sol */
+  --primary: #ce1126;
+  /* Rojo China */
+  --primary-dark: #a30e1e;
+  --secondary: #fbc531;
+  /* Amarillo Dorado */
   --text-main: #333333;
   /* Gris Grafito */
   --text-muted: #666666;
@@ -174,4 +175,61 @@ label {
 .btn-outline:hover {
   background-color: var(--primary);
   color: white;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .nav-links-desktop {
+    display: none !important;
+  }
+
+  .mobile-toggle {
+    display: block !important;
+  }
+
+  .catalog-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1.5rem;
+  }
+
+  .catalog-categories {
+    display: flex;
+    /* Ensure flex behavior */
+    width: calc(100% + 3rem);
+    /* Bleed out of the container padding (1.5rem * 2) */
+    margin-left: -1.5rem;
+    margin-right: -1.5rem;
+    padding: 0.5rem 1.5rem;
+    /* Inner padding to align first item with content */
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    gap: 0.75rem;
+    -webkit-overflow-scrolling: touch;
+    /* Smooth momentum scrolling on iOS */
+    scrollbar-width: none;
+    /* Hide scrollbar Firefox */
+  }
+
+  /* Hide scrollbar Chrome/Safari/Opera */
+  .catalog-categories::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Default displays defined in CSS instead of inline to allow overrides */
+.nav-links-desktop {
+  display: flex;
+}
+
+.mobile-toggle {
+  display: none;
+}
+
+/* Desktop-only sticky product image */
+@media (min-width: 769px) {
+  .product-image-section {
+    position: sticky;
+    top: 100px;
+  }
 }

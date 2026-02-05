@@ -50,9 +50,24 @@ export const getStoreData = async () => {
         return { products: [], categories: INITIAL_CATEGORIES };
     }
 
+    // Normalize products: fix typo 'caocina' -> 'Cocina'
+    const normalizedProducts = (products || []).map(p => {
+        if (p.category && ['caocina', 'cocina'].includes(p.category.toLowerCase())) {
+            return { ...p, category: 'Cocina' };
+        }
+        return p;
+    });
+
+    // Normalize categories: remove 'caocina'/'cocina' and ensure 'Cocina' exists if needed
+    let normalizedCategories = (categoriesData?.map(c => c.name) || INITIAL_CATEGORIES)
+        .map(c => ['caocina', 'cocina'].includes(c.toLowerCase()) ? 'Cocina' : c);
+
+    // Remove duplicates
+    normalizedCategories = [...new Set(normalizedCategories)];
+
     return {
-        products: products || [],
-        categories: categoriesData?.map(c => c.name) || INITIAL_CATEGORIES
+        products: normalizedProducts,
+        categories: normalizedCategories
     };
 };
 

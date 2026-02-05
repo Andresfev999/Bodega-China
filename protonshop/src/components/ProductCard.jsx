@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShoppingCart, Plus, Eye } from 'lucide-react';
+import { formatCurrency } from '../utils';
 
 const ProductCard = ({ product, onAddToCart, onSelect }) => {
     return (
@@ -33,12 +34,12 @@ const ProductCard = ({ product, onAddToCart, onSelect }) => {
                         {product.sale_price && product.sale_price < product.price ? (
                             <>
                                 <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                                    ${product.price.toLocaleString()}
+                                    {formatCurrency(product.price)}
                                 </span>
-                                <span style={styles.price}>${product.sale_price.toLocaleString()}</span>
+                                <span style={styles.price}>{formatCurrency(product.sale_price)}</span>
                             </>
                         ) : (
-                            <span style={styles.price}>${product.price.toLocaleString()}</span>
+                            <span style={styles.price}>{formatCurrency(product.price)}</span>
                         )}
                     </div>
                     <button className="btn btn-primary" style={styles.buyBtn} onClick={onAddToCart}>

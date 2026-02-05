@@ -10,8 +10,10 @@ import CustomerOrders from './components/CustomerOrders';
 import { getStoreData, slugify, recordVisit, getVisitCount } from './store';
 import { supabase } from './supabase';
 import LandingPage from './components/LandingPage';
+import CategoriesView from './components/CategoriesView'; // [NEW]
 import CashOnDeliveryBanner from './components/CashOnDeliveryBanner';
 import { Users } from 'lucide-react';
+import logoImg from './assets/images/logo.avif';
 
 function App() {
   const [data, setData] = useState({ products: [], categories: [] });
@@ -23,6 +25,7 @@ function App() {
   const [isProfileView, setIsProfileView] = useState(false);
   const [isOrdersView, setIsOrdersView] = useState(false);
   const [isLandingView, setIsLandingView] = useState(false);
+  const [isCategoriesView, setIsCategoriesView] = useState(false); // [NEW]
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [user, setUser] = useState(null);
@@ -41,10 +44,26 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load cart from localStorage on mount
+  // Load cart from localStorage on mount and migrate if necessary
   useEffect(() => {
     const savedCart = localStorage.getItem('protonshop_cart');
-    if (savedCart) setCart(JSON.parse(savedCart));
+    if (savedCart) {
+      let parsedCart = JSON.parse(savedCart);
+      // Migration: If cart items don't have quantity, add it
+      if (parsedCart.length > 0 && !parsedCart[0].quantity) {
+        // Group by ID
+        const distinctItems = {};
+        parsedCart.forEach(item => {
+          if (distinctItems[item.id]) {
+            distinctItems[item.id].quantity += 1;
+          } else {
+            distinctItems[item.id] = { ...item, quantity: 1 };
+          }
+        });
+        parsedCart = Object.values(distinctItems);
+      }
+      setCart(parsedCart);
+    }
   }, []);
 
   // Save cart to localStorage on change
@@ -53,7 +72,34 @@ function App() {
   }, [cart]);
 
   const addToCart = (product) => {
-    setCart(prevCart => [...prevCart, product]);
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.id === product.id);
+      if (existingItem) {
+        return prevCart.map(item =>
+          item.id === product.id
+            ? { ...item, quantity: (item.quantity || 1) + 1 }
+            : item
+        );
+      } else {
+        return [...prevCart, { ...product, quantity: 1 }];
+      }
+    });
+  };
+
+  const updateCartQuantity = (productId, change) => {
+    setCart(prevCart => {
+      return prevCart.map(item => {
+        if (item.id === productId) {
+          const newQuantity = (item.quantity || 1) + change;
+          return { ...item, quantity: newQuantity };
+        }
+        return item;
+      }).filter(item => item.quantity > 0);
+    });
+  };
+
+  const removeFromCart = (productId) => {
+    setCart(prevCart => prevCart.filter(item => item.id !== productId));
   };
 
   const fetchData = async () => {
@@ -88,12 +134,7 @@ function App() {
         );
 
         if (product) {
-          if (product.name.toLowerCase().includes('colombia')) {
-            setIsLandingView(true);
-            setSelectedProduct(product);
-          } else {
-            setSelectedProduct(product);
-          }
+          setSelectedProduct(product);
         }
       }
     }
@@ -118,10 +159,10 @@ function App() {
         cartCount={cart.length}
         onCartOpen={() => setIsCartOpen(true)}
         onAuthOpen={() => setIsAuthOpen(true)}
-        onProfileToggle={() => { setIsProfileView(!isProfileView); setIsOrdersView(false); setSelectedProduct(null); setIsLandingView(false); }}
-        onOrdersToggle={() => { setIsOrdersView(!isOrdersView); setIsProfileView(false); setSelectedProduct(null); setIsLandingView(false); }}
+        onProfileToggle={() => { setIsProfileView(!isProfileView); setIsOrdersView(false); setSelectedProduct(null); setIsLandingView(false); setIsCategoriesView(false); }}
+        onOrdersToggle={() => { setIsOrdersView(!isOrdersView); setIsProfileView(false); setSelectedProduct(null); setIsLandingView(false); setIsCategoriesView(false); }}
+        onCategoriesClick={() => { setIsCategoriesView(true); setIsProfileView(false); setIsOrdersView(false); setSelectedProduct(null); setIsLandingView(false); }} // [NEW]
         onSearch={setSearchQuery}
-        searchQuery={searchQuery}
         searchQuery={searchQuery}
         user={user}
       />
@@ -138,6 +179,8 @@ function App() {
         onClose={() => setIsCartOpen(false)}
         cart={cart}
         onClearCart={() => setCart([])}
+        updateCartQuantity={updateCartQuantity}
+        removeFromCart={removeFromCart}
         user={user}
       />
 
@@ -149,6 +192,17 @@ function App() {
           addToCart={addToCart}
           onCartOpen={() => setIsCartOpen(true)}
         />
+      ) : isCategoriesView ? ( // [NEW]
+        <main className="container">
+          <CategoriesView
+            categories={data.categories}
+            onSelectCategory={(cat) => {
+              setActiveCategory(cat);
+              setIsCategoriesView(false);
+            }}
+            onBack={() => setIsCategoriesView(false)}
+          />
+        </main>
       ) : isOrdersView ? (
         <main className="container">
           <CustomerOrders user={user} onBack={() => setIsOrdersView(false)} />
@@ -161,8 +215,13 @@ function App() {
         <main className="container">
           <ProductDetail
             product={selectedProduct}
+            allProducts={data.products} // [NEW] Pass all products for related section
             onBack={() => setSelectedProduct(null)}
             onAddToCart={(p) => addToCart(p || selectedProduct)} // Handle both passed product or current selected
+            onSelectProduct={(p) => {
+              setSelectedProduct(p);
+              window.scrollTo(0, 0);
+            }} // [NEW] Handle related product click
           />
         </main>
       ) : (
@@ -173,11 +232,9 @@ function App() {
               <div>
                 <h2 style={styles.sectionTitle}>Catálogo de Productos</h2>
                 <p style={styles.sectionDesc}>Descubre nuestras últimas novedades tecnológicas</p>
-                <div onClick={() => setIsLandingView(true)} style={{ marginTop: '1rem', cursor: 'pointer', background: 'linear-gradient(45deg, #fbc531, #ce1126)', padding: '1rem', borderRadius: '12px', color: 'white', fontWeight: 'bold', textAlign: 'center' }}>
-                  🏆 COLOMBIA 2026 - ¡EDICIÓN ESPECIAL! VER AHORA ➡️
-                </div>
+
               </div>
-              <div style={styles.categories}>
+              <div className="catalog-categories" style={styles.categories}>
                 <button
                   style={{ ...styles.catBtn, backgroundColor: activeCategory === 'Todos' ? 'var(--primary)' : 'white', color: activeCategory === 'Todos' ? 'white' : 'var(--text-main)' }}
                   onClick={() => setActiveCategory('Todos')}
@@ -235,31 +292,31 @@ function App() {
             )}
           </section>
         </main>
-      )}
+      )
+      }
 
       <footer style={styles.footer}>
         <div className="container" style={styles.footerInner}>
           <div style={styles.footerBrand}>
-            <span style={styles.footerLogo}>Proton<span style={{ color: 'var(--primary)' }}>Shop</span></span>
-            <p style={styles.footerTagline}>La tecnología se encuentra con el consumo.</p>
+            <img src={logoImg} alt="Bodega China" style={{ height: '50px', objectFit: 'contain' }} />
+            <p style={styles.footerTagline}>Tecnología y variedad a tu alcance.</p>
           </div>
-          <p style={styles.copyright}>&copy; 2026 ProtonShop. Todos los derechos reservados.</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            <Users size={14} />
-            <span>Visitas: {totalVisits.toLocaleString()}</span>
-          </div>
+          <p style={styles.copyright}>&copy; 2026 Bodega China. Todos los derechos reservados.</p>
+
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '1rem', opacity: 0.5 }}>
+          <a href="https://tu-admin-url.vercel.app" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textDecoration: 'none' }}>
+            Gestionar Tienda
+          </a>
         </div>
       </footer>
-    </div>
+    </div >
   );
 }
 
 const styles = {
   catalogSection: { padding: '4rem 0' },
   catalogHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
     marginBottom: '3rem'
   },
   sectionTitle: { fontSize: '2rem', marginBottom: '0.5rem' },

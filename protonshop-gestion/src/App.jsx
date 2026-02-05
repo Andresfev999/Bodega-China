@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Users, Package, ShoppingBag, Settings, Menu, X, Bell } from 'lucide-react';
+import logoImg from './assets/logo.avif';
+import Dashboard from './components/Dashboard';
 import InventoryManager from './components/InventoryManager';
 import OrderManager from './components/OrderManager';
 import { getStats } from './store';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState('dashboard'); // Default to dashboard
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [stats, setStats] = useState({ totalSales: 0, pendingOrders: 0 });
 
@@ -30,25 +32,7 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return (
-          <div>
-            <h2 style={{ marginBottom: '1.5rem' }}>Dashboard General</h2>
-            <div className="stats-grid">
-              <div className="stat-card">
-                <span className="stat-label">Ventas Totales</span>
-                <span className="stat-value" style={{ color: 'var(--success)' }}>
-                  ${stats.totalSales.toLocaleString()}
-                </span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-label">Pedidos Pendientes</span>
-                <span className="stat-value" style={{ color: 'var(--primary)' }}>
-                  {stats.pendingOrders}
-                </span>
-              </div>
-            </div>
-          </div>
-        );
+        return <Dashboard onNavigate={setActiveTab} />;
       case 'inventory': return <InventoryManager />;
       case 'orders': return <OrderManager />;
       default: return <div>Select a module</div>;
@@ -61,11 +45,11 @@ function App() {
       <div className="mobile-header" style={{
         display: 'none', // Shown via CSS media query
         justifyContent: 'space-between', padding: '1rem',
-        backgroundColor: '#020617', borderBottom: '1px solid var(--border)',
+        backgroundColor: '#f0f0f0', borderBottom: '1px solid var(--border)',
         position: 'sticky', top: 0, zIndex: 200
       }}>
-        <div className="logo"><span>Proton</span>Gestión</div>
-        <button className="btn-icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ color: 'white', background: 'none', border: 'none' }}>
+        <div className="logo" style={{ color: 'var(--text-main)' }}><span>Bodega</span>Gestión</div>
+        <button className="btn-icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ color: 'var(--text-main)', background: 'none', border: 'none' }}>
           {isSidebarOpen ? <X /> : <Menu />}
         </button>
       </div>
@@ -73,8 +57,8 @@ function App() {
       {/* Sidebar */}
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="logo">
-          <div style={{ width: '32px', height: '32px', background: 'var(--primary)', borderRadius: '8px' }}></div>
-          <span className="nav-text">Proton<span style={{ color: 'var(--primary)' }}>Admin</span></span>
+          <img src={logoImg} alt="BChina Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+          <span className="nav-text" style={{ fontSize: '1.2rem', color: '#fbc531' }}>BChina <span style={{ color: 'var(--primary)' }}>Admin</span></span>
         </div>
 
         <nav className="nav-menu">

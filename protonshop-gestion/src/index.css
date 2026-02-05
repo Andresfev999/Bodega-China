@@ -1,12 +1,15 @@
 :root {
-  --primary: #00BFFF;
+  --primary: #D21F1F;
+  /* Rojo China */
   --secondary: #FFD700;
-  --bg-dark: #0f172a;
-  --bg-card: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --border: #334155;
-  --accent: #38bdf8;
+  /* Amarillo Oro */
+  --bg-dark: #f0f0f0;
+  /* Fondo Claro */
+  --bg-card: #ffffff;
+  --text-main: #1A1A1A;
+  --text-muted: #555555;
+  --border: #e0e0e0;
+  --accent: #FFD700;
   --success: #10b981;
   --error: #f43f5e;
   --radius: 12px;
@@ -34,7 +37,7 @@ body {
 /* Sidebar */
 .sidebar {
   width: 260px;
-  background-color: #020617;
+  background-color: #1a1a1a;
   border-right: 1px solid var(--border);
   padding: 2rem 1.5rem;
   display: flex;
@@ -72,7 +75,7 @@ body {
 
 .nav-item:hover,
 .nav-item.active {
-  background-color: rgba(56, 189, 248, 0.1);
+  background-color: rgba(206, 17, 38, 0.1);
   color: var(--primary);
 }
 
@@ -147,7 +150,7 @@ body {
 }
 
 .btn-primary:hover {
-  background-color: #0ea5e9;
+  background-color: #a30e1e;
 }
 
 .btn-outline {
@@ -183,7 +186,7 @@ select,
 textarea {
   width: 100%;
   padding: 0.75rem;
-  background-color: #020617;
+  background-color: #1a1a1a;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text-main);
@@ -197,7 +200,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 0 0 2px rgba(251, 197, 49, 0.2);
 }
 
 label {

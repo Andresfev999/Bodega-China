@@ -1,5 +1,6 @@
 import React from 'react';
 import bannerImg from '../assets/images/banner.png';
+import bannerEnvios from '../assets/images/banner-envios.webp';
 
 const Hero = () => {
     return (
@@ -12,9 +13,13 @@ const Hero = () => {
                         <button className="btn btn-primary">Comprar Ahora</button>
                         <button className="btn btn-outline">Saber Más</button>
                     </div>
+
+                    <div style={{ marginTop: '2rem' }}>
+                        <img src={bannerEnvios} alt="Envíos seguros" style={{ width: '100%', borderRadius: '12px', boxShadow: 'var(--shadow-md)' }} />
+                    </div>
                 </div>
                 <div style={styles.imageBox}>
-                    <img src={bannerImg} alt="Banner de ProtonShop" style={styles.banner} />
+                    <img src={bannerImg} alt="Banner de Bodega China" style={styles.banner} />
                     <div style={styles.glassCard}>
                         <div style={styles.statItem}>
                             <span style={styles.statVal}>5k+</span>

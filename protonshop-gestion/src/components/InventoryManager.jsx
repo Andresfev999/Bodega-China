@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, X, Image as ImageIcon, Save, Loader2, Video, Link as LinkIcon, Download, FileJson, Code, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, X, Image as ImageIcon, Save, Loader2, Video, Link as LinkIcon, Download, FileJson, Code, Eye, Share2, Copy, MessageCircle } from 'lucide-react';
 import { getAdminProducts, getCategories, saveProduct, deleteProduct, uploadProductImage, getVisitCount } from '../store';
 import { improveDescription } from '../services/gemini';
 import { Sparkles } from 'lucide-react'; // Assuming Sparkles icon exists or use generic
@@ -36,6 +36,11 @@ const InventoryManager = () => {
     const [showJsonImport, setShowJsonImport] = useState(false);
     const [jsonInput, setJsonInput] = useState('');
     const [jsonPreviewData, setJsonPreviewData] = useState([]);
+
+    // Share Modal State
+    const [shareModalOpen, setShareModalOpen] = useState(false);
+    const [shareProduct, setShareProduct] = useState(null);
+    const [shareText, setShareText] = useState('');
 
 
 
@@ -416,6 +421,64 @@ const InventoryManager = () => {
         }));
     };
 
+    // --- WhatsApp Sharing Logic ---
+    const handleOpenShare = (product) => {
+        setShareProduct(product);
+
+        // Generate Slug for URL: lowercase, replace spaces with hyphens, remove special chars
+        const slug = product.name
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, '') // Remove special chars
+            .replace(/[\s_-]+/g, '-') // Replace spaces/underscores with hyphens
+            .replace(/^-+|-+$/g, ''); // Trim hyphens
+
+        const productUrl = `https://protondev.space?product=${slug}`;
+
+        const text = `✨ *NUEVO DISPONIBLE* ✨\n\n` +
+            `📦 *${product.name}*\n` +
+            `💰 *Precio:* $${product.price ? product.price.toLocaleString() : '0'}\n` +
+            (product.sale_price ? `🔥 *OFERTA:* $${product.sale_price.toLocaleString()}\n` : '') +
+            `🏷️ *Categoría:* ${product.category}\n\n` +
+            `📝 ${product.description ? product.description.substring(0, 100) + (product.description.length > 100 ? '...' : '') : ''}\n\n` +
+            `🛒 *Haz tu pedido en nuestra web:* ${productUrl}\n` +
+            `--------------------------------`;
+
+        setShareText(text);
+        setShareModalOpen(true);
+    };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(shareText);
+        alert('¡Texto copiado al portapapeles!');
+    };
+
+    const copyImageToClipboard = async () => {
+        if (!shareProduct || !shareProduct.image) return;
+
+        try {
+            const response = await fetch(shareProduct.image);
+            const blob = await response.blob();
+
+            // Clipboard API requires PNG usually, but modern browsers support others.
+            // We'll try to write directly.
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    [blob.type]: blob
+                })
+            ]);
+            alert('¡Imagen copiada! Ahora pégala en WhatsApp (Ctrl+V).');
+        } catch (error) {
+            console.error('Error copying image:', error);
+            alert('No se pudo copiar la imagen automáticamante. Intenta guardar la imagen primero.');
+        }
+    };
+
+    const sendToWhatsapp = () => {
+        const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+        window.open(url, '_blank');
+    };
+
     // Drag and Drop Handlers
     const handleDrag = (e) => {
         e.preventDefault();
@@ -610,6 +673,9 @@ const InventoryManager = () => {
                                         <button className="btn-icon" onClick={() => handleDelete(product.id)} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer' }}>
                                             <Trash2 size={18} />
                                         </button>
+                                        <button className="btn-icon" onClick={() => handleOpenShare(product)} title="Compartir en WhatsApp" style={{ background: 'none', border: 'none', color: '#25D366', cursor: 'pointer', marginLeft: '0.5rem' }}>
+                                            <Share2 size={18} />
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
@@ -624,328 +690,334 @@ const InventoryManager = () => {
                     backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
                 }}>
                     <div className="modal-content" style={{
-                        backgroundColor: 'var(--bg-card)', padding: '2rem', borderRadius: 'var(--radius)',
-                        width: '90%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto'
+                        backgroundColor: 'var(--bg-card)', padding: '2rem', borderRadius: '0',
+                        width: '100%', maxWidth: 'none', height: '100%', maxHeight: 'none', overflowY: 'auto'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                             <h3>{editingProduct ? 'Editar Producto' : 'Nuevo Producto'}</h3>
                             <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X /></button>
                         </div>
 
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <form onSubmit={handleSubmit} style={{
+                            display: 'grid',
+                            gridTemplateColumns: '350px 1fr',
+                            gap: '2rem',
+                            height: 'calc(100vh - 150px)', // Fixed height to fit in view
+                            overflow: 'hidden'
+                        }}>
 
-                            {/* JSON Import Toggle */}
-                            {!editingProduct && (
-                                <div style={{ marginBottom: '1rem' }}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowJsonImport(!showJsonImport)}
-                                        style={{
-                                            background: 'none', border: 'none', color: '#0ea5e9',
-                                            cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem'
-                                        }}
-                                    >
-                                        <FileJson size={16} />
-                                        {showJsonImport ? 'Ocultar Importación JSON' : 'Importar desde JSON'}
-                                    </button>
-
-                                    {showJsonImport && (
-                                        <div style={{ marginTop: '0.5rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px border #e2e8f0' }}>
-                                            {jsonPreviewData.length > 0 ? (
-                                                <div>
-                                                    <h4 style={{ marginBottom: '0.5rem', color: '#334155' }}>Vista Previa ({jsonPreviewData.length} productos)</h4>
-                                                    <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '1rem', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
-                                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                                                            <thead>
-                                                                <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
-                                                                    <th style={{ padding: '0.5rem' }}>Nombre</th>
-                                                                    <th style={{ padding: '0.5rem' }}>Precio</th>
-                                                                    <th style={{ padding: '0.5rem' }}>Costo</th>
-                                                                    <th style={{ padding: '0.5rem' }}>Prov.</th>
-                                                                    <th style={{ padding: '0.5rem' }}>IMG</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {jsonPreviewData.map((item, i) => (
-                                                                    <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                                        <td style={{ padding: '0.5rem' }}>{item.name}</td>
-                                                                        <td style={{ padding: '0.5rem' }}>${item.price}</td>
-                                                                        <td style={{ padding: '0.5rem', color: '#d97706' }}>${item.cost_price}</td>
-                                                                        <td style={{ padding: '0.5rem' }}>{item.supplier}</td>
-                                                                        <td style={{ padding: '0.5rem' }}>{item.image ? '✅' : '❌'}</td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setJsonPreviewData([])}
-                                                            style={{ backgroundColor: 'white', color: '#64748b', border: '1px solid #cbd5e1', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
-                                                        >
-                                                            Cancelar
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleConfirmBatchImport}
-                                                            disabled={uploading}
-                                                            style={{ backgroundColor: '#0ea5e9', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                                                        >
-                                                            {uploading ? <Loader2 className="animate-spin" size={14} /> : null}
-                                                            Confirmar Importación
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div style={{ marginBottom: '0.5rem' }}>
-                                                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: '#64748b' }}>Subir archivo JSON (del Extractor o respaldo):</label>
-                                                        <input type="file" accept=".json" onChange={handleJsonFileUpload} style={{ fontSize: '0.8rem' }} />
-                                                    </div>
-                                                    <textarea
-                                                        placeholder='O pega tu JSON aquí... Ej: { "name": "Zapato", ... }'
-                                                        rows={5}
-                                                        value={jsonInput}
-                                                        onChange={(e) => setJsonInput(e.target.value)}
-                                                        style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '0.8rem', marginBottom: '0.5rem' }}
-                                                    />
-                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleJsonImport}
-                                                            style={{ backgroundColor: '#0f172a', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                                                        >
-                                                            Analizar Datos
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleCopyExample}
-                                                            style={{ backgroundColor: 'white', color: '#0f172a', border: '1px solid #cbd5e1', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
-                                                        >
-                                                            Copiar Ejemplo
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-
-                            <div>
-                                <label>Imagen del Producto</label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <div
-                                        onDragEnter={handleDrag}
-                                        onDragLeave={handleDrag}
-                                        onDragOver={handleDrag}
-                                        onDrop={handleDrop}
-                                        style={{
-                                            border: `2px dashed ${dragActive ? 'var(--primary)' : 'var(--border)'}`,
-                                            borderRadius: '8px',
-                                            padding: '1rem',
-                                            textAlign: 'center',
-                                            cursor: 'pointer',
-                                            position: 'relative',
-                                            backgroundColor: dragActive ? 'rgba(56, 189, 248, 0.1)' : '#f8fafc',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        {formData.image ? (
-                                            <div style={{ position: 'relative' }}>
-                                                <img src={formData.image} alt="Preview" style={{ maxHeight: '150px', margin: '0 auto', display: 'block', borderRadius: '4px' }}
+                            {/* LEFT COLUMN: IMAGES */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                {/* Main Image */}
+                                <div>
+                                    <label>Imagen Principal</label>
+                                    {formData.image ? (
+                                        <div
+                                            style={{
+                                                border: '1px solid var(--border)',
+                                                borderRadius: '8px',
+                                                height: '300px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                backgroundColor: '#020617',
+                                                position: 'relative',
+                                                overflow: 'hidden'
+                                            }}
+                                        >
+                                            <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                                                <img src={formData.image} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                                     onError={(e) => e.target.style.display = 'none'} />
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); setFormData({ ...formData, image: '' }); }}
+                                                    style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', padding: '4px', cursor: 'pointer', zIndex: 10 }}>
+                                                    <X size={16} />
+                                                </button>
                                             </div>
-                                        ) : (
-                                            <div style={{ color: dragActive ? 'var(--primary)' : 'var(--text-muted)' }}>
-                                                <ImageIcon style={{ marginBottom: '0.5rem' }} />
-                                                <br />
-                                                {dragActive ? "¡Suelta la imagen aquí!" : "Click para subir o arrastra una imagen aquí"}
+                                        </div>
+                                    ) : (
+                                        <label
+                                            onDragEnter={handleDrag}
+                                            onDragLeave={handleDrag}
+                                            onDragOver={handleDrag}
+                                            onDrop={handleDrop}
+                                            style={{
+                                                border: `2px dashed ${dragActive ? 'var(--primary)' : 'var(--border)'}`,
+                                                borderRadius: '8px',
+                                                height: '300px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                backgroundColor: dragActive ? 'rgba(56, 189, 248, 0.1)' : '#020617',
+                                                position: 'relative',
+                                                cursor: 'pointer',
+                                                overflow: 'hidden',
+                                                flexDirection: 'column'
+                                            }}
+                                        >
+                                            <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                                                <ImageIcon size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                                                <p style={{ fontSize: '0.9rem' }}>Arrastra o click para subir</p>
                                             </div>
-                                        )}
-                                        <input type="file" onChange={handleImageUpload} style={{ display: 'none' }} accept="image/*" id="img-upload" />
-                                        <label htmlFor="img-upload" style={{ display: 'block', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, cursor: 'pointer' }}></label>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>O pega URL:</span>
-                                        <input
-                                            type="text"
-                                            value={formData.image}
-                                            onChange={e => setFormData({ ...formData, image: e.target.value })}
-                                            placeholder="https://ejemplo.com/imagen.jpg"
-                                            style={{ flex: 1, fontSize: '0.85rem' }}
-                                        />
-                                        {formData.image && <button type="button" onClick={() => setFormData({ ...formData, image: '' })} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={16} /></button>}
-                                    </div>
+                                            <input type="file" onChange={handleImageUpload} style={{ display: 'none' }} accept="image/*" />
+                                        </label>
+                                    )}
+                                    <input
+                                        type="text"
+                                        placeholder="O pega URL de imagen..."
+                                        value={formData.image}
+                                        onChange={e => setFormData({ ...formData, image: e.target.value })}
+                                        style={{ marginTop: '0.5rem', fontSize: '0.8rem', padding: '0.4rem' }}
+                                    />
                                 </div>
-                            </div>
 
-                            <div>
-                                <label>Galería (Opcional)</label>
-                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                                    {(formData.gallery || []).map((img, idx) => {
-                                        const isVideo = img.toLowerCase().endsWith('.mp4') || img.toLowerCase().endsWith('.webm');
-                                        return (
-                                            <div key={idx} style={{ position: 'relative', width: '60px', height: '60px' }}>
-                                                {isVideo ? (
-                                                    <video src={img} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', background: '#000' }} />
-                                                ) : (
-                                                    <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeGalleryImage(idx)}
-                                                    style={{
-                                                        position: 'absolute', top: -5, right: -5,
-                                                        background: 'var(--error)', color: 'white',
-                                                        border: 'none', borderRadius: '50%',
-                                                        width: '20px', height: '20px',
-                                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                    }}
-                                                >
+                                {/* Gallery */}
+                                <div style={{ flex: 1 }}>
+                                    <label>Galería Adicional</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                                        {(formData.gallery || []).map((img, idx) => (
+                                            <div key={idx} style={{ aspectRatio: '1/1', position: 'relative', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                                                <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <button type="button" onClick={() => removeGalleryImage(idx)}
+                                                    style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(239, 68, 68, 0.9)', color: 'white', border: 'none', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                                                     &times;
                                                 </button>
                                             </div>
-                                        );
-                                    })}
-                                    <div
-                                        onDragEnter={handleGalleryDrag}
-                                        onDragLeave={handleGalleryDrag}
-                                        onDragOver={handleGalleryDrag}
-                                        onDrop={handleGalleryDrop}
-                                        style={{
-                                            width: '60px',
-                                            height: '60px',
-                                            border: `2px dashed ${galleryDragActive ? 'var(--primary)' : 'var(--border)'}`,
-                                            borderRadius: '4px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            cursor: 'pointer',
-                                            position: 'relative',
-                                            backgroundColor: galleryDragActive ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        <Plus size={20} color={galleryDragActive ? 'var(--primary)' : 'var(--text-muted)'} />
-                                        <input type="file" onChange={handleGalleryUpload} style={{ display: 'none' }} accept="image/*,video/mp4,video/webm" id="gallery-upload" multiple />
-                                        <label htmlFor="gallery-upload" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: 'pointer' }} title="Subir archivo(s)"></label>
-                                    </div>
-                                    <div style={{ width: '60px', height: '60px', border: '1px solid var(--border)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backgroundColor: '#f1f5f9' }}
-                                        onClick={() => {
-                                            const url = prompt('Ingresa la URL de la imagen o video:');
-                                            if (url) setFormData(prev => ({ ...prev, gallery: [...(prev.gallery || []), url] }));
-                                        }}
-                                        title="Agregar desde URL"
-                                    >
-                                        <LinkIcon size={20} color="var(--text-muted)" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label>Nombre</label>
-                                    <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
-                                        <div>
-                                            <label style={{ fontSize: '0.8rem', color: '#64748b' }}>ID Externo</label>
-                                            <input type="text" value={formData.external_id} onChange={e => setFormData({ ...formData, external_id: e.target.value })} style={{ fontSize: '0.85rem' }} />
-                                        </div>
-                                        <div>
-                                            <label style={{ fontSize: '0.8rem', color: '#64748b' }}>Proveedor</label>
-                                            <input type="text" value={formData.supplier} onChange={e => setFormData({ ...formData, supplier: e.target.value })} style={{ fontSize: '0.85rem' }} />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    <div>
-                                        <label>Precio Sugerido (Público)</label>
-                                        <input type="number" required value={formData.price} onChange={e => setFormData({ ...formData, price: Number(e.target.value) })} style={{ fontWeight: 'bold' }} />
-                                    </div>
-                                    <div style={{ padding: '0.5rem', backgroundColor: '#fff7ed', borderRadius: '4px', border: '1px solid #fed7aa' }}>
-                                        <label style={{ color: '#d97706', fontSize: '0.85rem' }}>Precio Costo (Privado)</label>
-                                        <input type="number" value={formData.cost_price} onChange={e => setFormData({ ...formData, cost_price: Number(e.target.value) })} style={{ borderColor: '#fdba74' }} />
-                                    </div>
-                                    <div>
-                                        <label>Precio Oferta (Opcional)</label>
-                                        <input
-                                            type="number"
-                                            value={formData.sale_price || ''}
-                                            onChange={e => setFormData({ ...formData, sale_price: e.target.value ? Number(e.target.value) : null })}
-                                            placeholder="Dejar vacío si no hay oferta"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label>Categoría</label>
-                                    <input type="text" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} list="categories" placeholder="Escribe o selecciona..." />
-                                    <datalist id="categories">
-                                        {categories.map(cat => (
-                                            <option key={cat.id} value={cat.name} />
                                         ))}
-                                    </datalist>
-                                </div>
-                                <div>
-                                    <label>Stock</label>
-                                    <input type="number" value={formData.stock} onChange={e => setFormData({ ...formData, stock: Number(e.target.value) })} />
+                                        <label
+                                            onDragEnter={handleGalleryDrag}
+                                            onDragLeave={handleGalleryDrag}
+                                            onDragOver={handleGalleryDrag}
+                                            onDrop={handleGalleryDrop}
+                                            style={{
+                                                aspectRatio: '1/1',
+                                                border: `2px dashed ${galleryDragActive ? 'var(--primary)' : 'var(--border)'}`,
+                                                borderRadius: '4px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                position: 'relative',
+                                                backgroundColor: galleryDragActive ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
+                                                transition: 'all 0.2s ease',
+                                                color: 'var(--text-muted)'
+                                            }}
+                                        >
+                                            <Plus size={20} color={galleryDragActive ? 'var(--primary)' : 'var(--text-muted)'} />
+                                            <input type="file" onChange={handleGalleryUpload} style={{ display: 'none' }} accept="image/*,video/mp4,video/webm" multiple />
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                    <label style={{ marginBottom: 0 }}>Descripción</label>
-                                    <button
-                                        type="button"
-                                        onClick={async () => {
-                                            if (!formData.name) return alert('Ingresa primero el nombre del producto');
+                            {/* RIGHT COLUMN: DETAILS */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', paddingRight: '0.5rem' }}>
+
+                                {/* JSON Import Toggle (Compact) */}
+                                {!editingProduct && (
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                        <button type="button" onClick={() => setShowJsonImport(!showJsonImport)}
+                                            style={{ background: 'none', border: 'none', color: '#0ea5e9', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <FileJson size={14} /> Importar JSON
+                                        </button>
+                                    </div>
+                                )}
+                                {showJsonImport && (
+                                    <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                        <textarea
+                                            placeholder='Pega tu JSON aquí...'
+                                            rows={3}
+                                            value={jsonInput}
+                                            onChange={(e) => setJsonInput(e.target.value)}
+                                            style={{ width: '100%', fontSize: '0.8rem', fontFamily: 'monospace', marginBottom: '0.5rem' }}
+                                        />
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button type="button" onClick={handleJsonImport} style={{ backgroundColor: '#0f172a', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>Cargar</button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Row 1: Name & Category */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label>Nombre del Producto</label>
+                                        <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} style={{ fontSize: '1.1rem', fontWeight: '600' }} />
+                                    </div>
+                                    <div>
+                                        <label>Categoría</label>
+                                        <input type="text" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} list="categories" placeholder="Seleccionar..." />
+                                        <datalist id="categories">
+                                            {categories.map(cat => <option key={cat.id} value={cat.name} />)}
+                                        </datalist>
+                                    </div>
+                                </div>
+
+                                {/* Row 2: Prices & Stock */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem', alignItems: 'end' }}>
+                                    <div>
+                                        <label>Precio (Público)</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>$</span>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={formData.price ? formData.price.toLocaleString('es-CO') : ''}
+                                                onChange={e => {
+                                                    const val = parseInt(e.target.value.replace(/\./g, '')) || 0;
+                                                    setFormData({ ...formData, price: val });
+                                                }}
+                                                style={{ paddingLeft: '1.5rem', fontWeight: 'bold' }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{ color: '#d97706' }}>Costo (Privado)</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>$</span>
+                                            <input
+                                                type="text"
+                                                value={formData.cost_price ? formData.cost_price.toLocaleString('es-CO') : ''}
+                                                onChange={e => {
+                                                    const cost = parseInt(e.target.value.replace(/\./g, '')) || 0;
+                                                    setFormData({
+                                                        ...formData,
+                                                        cost_price: cost,
+                                                        price: Math.ceil(cost / 0.55) // Calculate price for 45% profit margin: Cost / (1 - 0.45)
+                                                    });
+                                                }}
+                                                style={{ paddingLeft: '1.5rem', borderColor: '#fdba74' }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label>Oferta (Opcional)</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>$</span>
+                                            <input
+                                                type="text"
+                                                value={formData.sale_price ? formData.sale_price.toLocaleString('es-CO') : ''}
+                                                onChange={e => {
+                                                    const val = e.target.value ? (parseInt(e.target.value.replace(/\./g, '')) || 0) : null;
+                                                    setFormData({ ...formData, sale_price: val });
+                                                }}
+                                                style={{ paddingLeft: '1.5rem', color: 'var(--success)' }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label>Stock</label>
+                                        <input type="number" value={formData.stock} onChange={e => setFormData({ ...formData, stock: Number(e.target.value) })} />
+                                    </div>
+                                </div>
+
+                                {/* Row 3: Supplier & External ID */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label>Proveedor</label>
+                                        <input type="text" value={formData.supplier} onChange={e => setFormData({ ...formData, supplier: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label>ID / SKU Externo</label>
+                                        <input type="text" value={formData.external_id} onChange={e => setFormData({ ...formData, external_id: e.target.value })} />
+                                    </div>
+                                </div>
+
+                                {/* Row 4: Description (Takes remaining space) */}
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <label>Descripción</label>
+                                        <button type="button" onClick={async () => {
+                                            if (!formData.name) return alert('Ingresa nombre');
                                             setImproving(true);
                                             try {
                                                 const improved = await improveDescription(formData.name, formData.description);
                                                 setFormData(prev => ({ ...prev, description: improved }));
-                                            } catch (error) {
-                                                alert('Error al mejorar descripción: ' + error.message);
-                                            } finally {
-                                                setImproving(false);
-                                            }
+                                            } catch (err) { alert(err.message); } finally { setImproving(false); }
                                         }}
-                                        disabled={improving}
-                                        style={{
-                                            background: 'linear-gradient(135deg, #818cf8 0%, #6366f1 100%)',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '20px',
-                                            padding: '0.25rem 0.75rem',
-                                            fontSize: '0.75rem',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.25rem',
-                                            fontWeight: '600'
-                                        }}
-                                    >
-                                        <Sparkles size={12} />
-                                        {improving ? 'Generando...' : 'Mejorar con IA'}
+                                            disabled={improving}
+                                            style={{ border: 'none', background: 'none', color: '#6366f1', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            <Sparkles size={14} /> {improving ? 'Generando...' : 'Mejorar con IA'}
+                                        </button>
+                                    </div>
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                        style={{ flex: 1, minHeight: '100px', resize: 'none', fontFamily: 'inherit' }}
+                                    />
+                                </div>
+
+                                {/* Footer Action */}
+                                <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+                                    <button type="submit" className="btn btn-primary" disabled={uploading} style={{ minWidth: '150px', justifyContent: 'center' }}>
+                                        {uploading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                                        {uploading ? ' Guardando...' : ' Guardar Producto'}
                                     </button>
                                 </div>
-                                <textarea
-                                    rows="5"
-                                    value={formData.description}
-                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                                />
                             </div>
 
-                            <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', justifyContent: 'center' }} disabled={uploading}>
-                                {uploading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                                {uploading ? ' Guardando...' : ' Guardar Producto'}
-                            </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Share Modal */}
+            {shareModalOpen && shareProduct && (
+                <div className="modal-overlay" style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100,
+                    backdropFilter: 'blur(5px)'
+                }} onClick={() => setShareModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{
+                        backgroundColor: 'var(--bg-card)', padding: '2rem', borderRadius: '16px',
+                        width: '90%', maxWidth: '450px', border: '1px solid var(--border)',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                    }}>
+                        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ width: '60px', height: '60px', backgroundColor: 'rgba(37, 211, 102, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                                <Share2 size={32} color="#25D366" />
+                            </div>
+                            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Compartir Producto</h3>
+                            <p style={{ color: 'var(--text-muted)' }}>Comparte este producto con tus clientes de forma creativa.</p>
+                        </div>
+
+                        <div style={{ backgroundColor: 'var(--bg-pure)', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+                                <img src={shareProduct.image} alt="" style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
+                                <div>
+                                    <div style={{ fontWeight: 'bold' }}>{shareProduct.name}</div>
+                                    <div style={{ color: 'var(--primary)' }}>${shareProduct.price?.toLocaleString()}</div>
+                                </div>
+                            </div>
+                            <textarea
+                                value={shareText}
+                                onChange={(e) => setShareText(e.target.value)}
+                                style={{
+                                    width: '100%', height: '150px', backgroundColor: 'transparent',
+                                    border: 'none', color: 'var(--text-main)', fontSize: '0.9rem',
+                                    resize: 'none', fontFamily: 'inherit'
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                            <button onClick={copyImageToClipboard} className="btn" style={{
+                                backgroundColor: 'var(--bg-pure)', border: '1px solid var(--border)',
+                                color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', fontSize: '0.8rem'
+                            }}>
+                                <ImageIcon size={16} /> Copiar Img
+                            </button>
+                            <button onClick={copyToClipboard} className="btn" style={{
+                                backgroundColor: 'var(--bg-pure)', border: '1px solid var(--border)',
+                                color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', fontSize: '0.8rem'
+                            }}>
+                                <Copy size={16} /> Copiar Txt
+                            </button>
+                            <button onClick={sendToWhatsapp} className="btn" style={{
+                                backgroundColor: '#25D366', border: 'none',
+                                color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', fontSize: '0.8rem'
+                            }}>
+                                <MessageCircle size={16} /> Enviar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

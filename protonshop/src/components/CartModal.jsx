@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, Trash2, CheckCircle, Loader2 } from 'lucide-react';
+import { X, ShoppingBag, Trash2, CheckCircle, Loader2, Plus, Minus } from 'lucide-react';
 import { createOrder, getProfile } from '../store';
+import { formatCurrency } from '../utils';
 
-const CartModal = ({ isOpen, onClose, cart, onClearCart, user }) => {
+const CartModal = ({ isOpen, onClose, cart, onClearCart, updateCartQuantity, removeFromCart, user }) => {
     const [step, setStep] = useState(1); // 1: Review, 2: Checkout, 3: Success
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -61,7 +62,7 @@ const CartModal = ({ isOpen, onClose, cart, onClearCart, user }) => {
 
     const total = cart.reduce((sum, item) => {
         const finalPrice = item.sale_price && item.sale_price < item.price ? item.sale_price : item.price;
-        return sum + finalPrice;
+        return sum + finalPrice * (item.quantity || 1);
     }, 0);
 
     const handleSubmit = async (e) => {
@@ -73,6 +74,7 @@ const CartModal = ({ isOpen, onClose, cart, onClearCart, user }) => {
                 total,
                 items: cart.map(item => ({
                     ...item,
+                    quantity: item.quantity || 1,
                     price: item.sale_price && item.sale_price < item.price ? item.sale_price : item.price
                 })),
                 status: 'Pendiente',
@@ -119,25 +121,52 @@ const CartModal = ({ isOpen, onClose, cart, onClearCart, user }) => {
                                                     {item.sale_price && item.sale_price < item.price ? (
                                                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                                             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                                                                ${item.price.toLocaleString()}
+                                                                {formatCurrency(item.price)}
                                                             </span>
                                                             <span style={{ color: 'var(--success)', fontWeight: '700' }}>
-                                                                ${item.sale_price.toLocaleString()}
+                                                                {formatCurrency(item.sale_price)}
                                                             </span>
                                                         </div>
                                                     ) : (
-                                                        <span>${item.price.toLocaleString()}</span>
+                                                        <span>{formatCurrency(item.price)}</span>
                                                     )}
                                                 </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <button
+                                                        onClick={() => updateCartQuantity(item.id, -1)}
+                                                        style={styles.qtyBtn}
+                                                    >
+                                                        <Minus size={14} />
+                                                    </button>
+                                                    <span style={{ fontWeight: '600', minWidth: '1.5rem', textAlign: 'center' }}>{item.quantity || 1}</span>
+                                                    <button
+                                                        onClick={() => updateCartQuantity(item.id, 1)}
+                                                        style={styles.qtyBtn}
+                                                    >
+                                                        <Plus size={14} />
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    onClick={() => removeFromCart(item.id)}
+                                                    style={styles.deleteBtn}
+                                                    title="Eliminar producto"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
                                     <div style={styles.totalRow}>
                                         <span>Total:</span>
-                                        <span style={styles.totalPrice}>${total.toLocaleString()}</span>
+                                        <span style={styles.totalPrice}>{formatCurrency(total)}</span>
                                     </div>
-                                    <button className="btn btn-primary" style={styles.btnFull} onClick={() => setStep(2)}>
-                                        Llenar datos
+                                    <button
+                                        className="btn btn-primary"
+                                        style={styles.btnCheckout}
+                                        onClick={() => setStep(2)}
+                                    >
+                                        <ShoppingBag size={20} style={{ marginRight: '8px' }} />
+                                        COMPRAR AHORA
                                     </button>
                                 </>
                             )}
@@ -146,23 +175,16 @@ const CartModal = ({ isOpen, onClose, cart, onClearCart, user }) => {
 
                     {step === 2 && (
                         <form onSubmit={handleSubmit} style={styles.form}>
+                            {/* Promotional Banners */}
+                            <div style={styles.bannerContainer}>
+                                <img src="/src/assets/images/promo/envios.png" alt="Envío Gratis" style={styles.bannerImg} onError={(e) => e.target.style.display = 'none'} />
+                                <img src="/src/assets/images/promo/garantia.png" alt="Garantía" style={styles.bannerImg} onError={(e) => e.target.style.display = 'none'} />
+                            </div>
+
                             <div style={styles.formHeaderRow}>
                                 <div>
-                                    <p style={styles.formNote}>Paga al recibir el producto.</p>
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                                        * El valor del envío será calculado al confirmar el pedido.
-                                    </p>
+                                    <h4 style={{ color: '#D21F1F', marginBottom: '5px' }}>Completa tus detalles</h4>
                                 </div>
-                                {user && (
-                                    <button
-                                        type="button"
-                                        onClick={handleManualFill}
-                                        style={styles.btnMini}
-                                        disabled={loading}
-                                    >
-                                        {loading ? 'Cargando...' : 'Cargar mis datos'}
-                                    </button>
-                                )}
                             </div>
                             <div style={styles.formGroup}>
                                 <label>Nombre Completo</label>
@@ -213,7 +235,7 @@ const CartModal = ({ isOpen, onClose, cart, onClearCart, user }) => {
                             </div>
                             <div style={styles.totalRow}>
                                 <span>Total a Pagar:</span>
-                                <span style={styles.totalPrice}>${total.toLocaleString()}</span>
+                                <span style={styles.totalPrice}>{formatCurrency(total)}</span>
                             </div>
                             <div style={styles.actions}>
                                 <button type="button" style={styles.btnGhost} onClick={() => setStep(1)} disabled={loading}>Volver</button>
@@ -325,18 +347,43 @@ const styles = {
         fontWeight: '700'
     },
     totalPrice: {
-        color: 'var(--primary)',
+        color: '#D21F1F', // Rojo China
         fontSize: '1.5rem'
     },
-    btnFull: {
+    btnCheckout: {
         width: '100%',
         padding: '1rem',
-        justifyContent: 'center'
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ce1126', // Rojo China
+        color: 'white',
+        fontSize: '1.2rem',
+        fontWeight: '800',
+        borderRadius: '50px',
+        border: '3px solid #fbc531', // Borde Dorado
+        boxShadow: '0 4px 15px rgba(206, 17, 38, 0.4)',
+        cursor: 'pointer',
+        animation: 'pulse 2s infinite',
+        textTransform: 'uppercase',
+        letterSpacing: '1px'
     },
     form: {
         display: 'flex',
         flexDirection: 'column',
         gap: '1.25rem'
+    },
+    bannerContainer: {
+        display: 'flex',
+        gap: '10px',
+        marginBottom: '15px',
+        overflowX: 'auto'
+    },
+    bannerImg: {
+        borderRadius: '8px',
+        height: '80px',
+        objectFit: 'cover',
+        flex: '1'
     },
     formRow: {
         display: 'grid',
@@ -354,19 +401,20 @@ const styles = {
         padding: '0.4rem 0.8rem',
         fontSize: '0.75rem',
         borderRadius: '6px',
-        border: '1px solid var(--primary)',
-        color: 'var(--primary)',
+        border: '1px solid #D21F1F',
+        color: '#D21F1F',
         backgroundColor: 'transparent',
         cursor: 'pointer',
         fontWeight: '700'
     },
     formNote: {
         fontSize: '0.85rem',
-        color: '#0369a1',
-        backgroundColor: '#e0f2fe',
+        color: '#D21F1F',
+        backgroundColor: '#fff0f0',
         padding: '0.75rem',
         borderRadius: '8px',
-        marginBottom: '0.5rem'
+        marginBottom: '0.5rem',
+        border: '1px solid #ffcccc'
     },
     formGroup: {
         display: 'flex',
@@ -388,7 +436,9 @@ const styles = {
     },
     btnFlex: {
         flex: 2,
-        justifyContent: 'center'
+        justifyContent: 'center',
+        backgroundColor: '#D21F1F', // Rojo China
+        color: 'white'
     },
     success: {
         textAlign: 'center',
@@ -397,7 +447,38 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '1.5rem'
+    },
+    qtyBtn: {
+        width: '24px',
+        height: '24px',
+        borderRadius: '50%',
+        border: '1px solid var(--border)',
+        backgroundColor: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        color: 'var(--text-main)'
+    },
+    deleteBtn: {
+        background: 'none',
+        border: 'none',
+        color: 'var(--error)',
+        cursor: 'pointer',
+        padding: '0.25rem',
+        marginLeft: '0.5rem'
     }
 };
 
 export default CartModal;
+
+// Inject pulse animation
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+  @keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 197, 49, 0.7); }
+    70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(251, 197, 49, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251, 197, 49, 0); }
+  }
+`;
+document.head.appendChild(styleSheet);

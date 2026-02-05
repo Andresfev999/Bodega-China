@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Truck, CheckCircle, Clock, XCircle, Search, Filter, MessageCircle, Edit } from 'lucide-react';
-import { getAdminOrders, updateOrderStatus, updateOrderShippingCost } from '../store';
+import { getAdminOrders, updateOrderStatus, updateOrderShippingCost, deleteOrder } from '../store';
 
 const OrderManager = () => {
     const [orders, setOrders] = useState([]);
@@ -70,31 +70,54 @@ const OrderManager = () => {
         }
     };
 
+    const handleDelete = async (orderId) => {
+        if (!window.confirm('¿Estás seguro de que deseas eliminar este pedido? Esta acción no se puede deshacer.')) {
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await deleteOrder(orderId);
+            await loadOrders();
+        } catch (error) {
+            alert(`Error al eliminar el pedido:\nCode: ${error.code || 'N/A'}\nMessage: ${error.message}\nDetails: ${error.details || ''}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Pendiente': return '#f59e0b'; // Amber
-            case 'Confirmado': return '#8b5cf6'; // Violet
+            case 'Pendiente': return '#64748b'; // Slate
+            case 'Confirmado': return '#fbc531'; // Gold
             case 'Enviado': return '#3b82f6'; // Blue
             case 'Completado': return '#10b981'; // Green
-            case 'Cancelado': return '#ef4444'; // Red
+            case 'Cancelado': return '#ce1126'; // Red
             default: return '#94a3b8';
         }
     };
 
     const generateWhatsAppMsg = (order) => {
         const itemsList = order.items.map(i => `- ${i.name} ($${i.price.toLocaleString()})`).join('\n');
-        const total = order.total.toLocaleString();
+        const total = order.total?.toLocaleString() || '0';
 
-        const message = `*** Hola ${order.customer_name}, recibimos tu pedido ${order.order_code || ''} en ProtonShop.\n\n` +
+        const message = `*** Hola ${order.customer_name || 'Cliente'}, recibimos tu pedido ${order.order_code || ''} en ProtonShop.\n\n` +
             `>> *Resumen del Pedido (${order.order_code || 'Nuevo'}):*\n${itemsList}\n` +
             (order.shipping_cost > 0 ? `>> *Envío:* $${Number(order.shipping_cost).toLocaleString()}\n` : '') +
             `>> *Total:* $${total}\n\n` +
             `>> *Datos de Envío:*\n` +
-            `Dirección: ${order.customer_address}\n` +
-            `Municipio: ${order.customer_municipio}\n` +
-            `Departamento: ${order.customer_departamento}\n` +
-            `Teléfono: ${order.customer_phone}\n\n` +
+            `Dirección: ${order.customer_address || 'Pendiente'}\n` +
+            `Municipio: ${order.customer_municipio || ''}\n` +
+            `Departamento: ${order.customer_departamento || ''}\n` +
+            `Teléfono: ${order.customer_phone || 'Pendiente'}\n\n` +
             `?? *¿Nos confirmas que la información es correcta para proceder con el envío?*`;
+
+        if (!order.customer_phone) {
+            navigator.clipboard.writeText(message)
+                .then(() => alert('⚠️ Este pedido no tiene teléfono registrado.\n\nEl mensaje ha sido COPIADO al portapapeles para que puedas enviarlo manualmente.'))
+                .catch(err => alert('Error al copiar al portapapeles: ' + err));
+            return;
+        }
 
         let phone = order.customer_phone.replace(/\D/g, '');
         const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
@@ -232,6 +255,24 @@ const OrderManager = () => {
                                         }}
                                     >
                                         <MessageCircle size={16} /> WhatsApp
+                                    </button>
+                                    <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border)', margin: '0 0.5rem' }}></div>
+                                    <button
+                                        onClick={() => handleDelete(order.id)}
+                                        style={{
+                                            padding: '0.5rem',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            backgroundColor: 'transparent',
+                                            color: '#ef4444',
+                                            border: '1px solid #ef4444',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                        title="Eliminar pedido"
+                                    >
+                                        <XCircle size={16} />
                                     </button>
                                     <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border)', margin: '0 0.5rem' }}></div>
                                     {['Pendiente', 'Confirmado', 'Enviado', 'Completado', 'Cancelado'].map(status => (

@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ShoppingCart, Minus, Plus, Check, ShieldCheck, PlayCircle, Share2 } from 'lucide-react';
+import ProductCard from './ProductCard';
+import bannerEnvios from '../assets/images/banner-envios.webp';
+import bannerBeneficios from '../assets/images/banner-benficios.webp';
 
-const ProductDetail = ({ product, onBack, onAddToCart }) => {
+import { formatCurrency } from '../utils';
+
+const ProductDetail = ({ product, allProducts, onBack, onAddToCart, onSelectProduct }) => {
     const [quantity, setQuantity] = useState(1);
     const [mainImage, setMainImage] = useState(product.image);
 
@@ -19,6 +24,14 @@ const ProductDetail = ({ product, onBack, onAddToCart }) => {
     const discountPercentage = product.sale_price
         ? Math.round(((product.price - product.sale_price) / product.price) * 100)
         : 0;
+
+    // Get related products
+    const relatedProducts = allProducts
+        ? allProducts
+            .filter(p => p.category === product.category && p.id !== product.id)
+            .sort(() => 0.5 - Math.random()) // Simple shuffle
+            .slice(0, 3)
+        : [];
 
     return (
         <div style={styles.container}>
@@ -46,7 +59,7 @@ const ProductDetail = ({ product, onBack, onAddToCart }) => {
 
             <div style={styles.grid}>
                 {/* Left Column: Images */}
-                <div style={styles.imageSection}>
+                <div className="product-image-section">
                     <div style={styles.mainImageContainer}>
                         {discountPercentage > 0 && (
                             <span style={styles.badge}>-{discountPercentage}%</span>
@@ -121,20 +134,26 @@ const ProductDetail = ({ product, onBack, onAddToCart }) => {
                     <div style={styles.priceBox}>
                         {product.sale_price && product.sale_price < product.price ? (
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={styles.oldPrice}>Antes: ${product.price.toLocaleString()}</span>
+                                <span style={styles.oldPrice}>Antes: {formatCurrency(product.price)}</span>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <span style={styles.currentPrice}>${product.sale_price.toLocaleString()}</span>
-                                    <span style={styles.savings}>Ahorras: ${(product.price - product.sale_price).toLocaleString()}</span>
+                                    <span style={styles.currentPrice}>{formatCurrency(product.sale_price)}</span>
+                                    <span style={styles.savings}>Ahorras: {formatCurrency(product.price - product.sale_price)}</span>
                                 </div>
                             </div>
                         ) : (
-                            <span style={styles.currentPrice}>${product.price.toLocaleString()}</span>
+                            <span style={styles.currentPrice}>{formatCurrency(product.price)}</span>
                         )}
                     </div>
 
                     <div style={styles.stockInfo}>
                         <Check size={18} color="var(--success)" />
                         <span>Disponible en stock: {product.stock || 'Consultar'} unidades</span>
+                    </div>
+
+                    {/* Banners Information */}
+                    <div style={styles.bannerSection}>
+                        <img src={bannerEnvios} alt="Envíos" style={styles.infoBanner} />
+                        <img src={bannerBeneficios} alt="Beneficios" style={styles.infoBanner} />
                     </div>
 
                     <div style={styles.actions}>
@@ -153,17 +172,15 @@ const ProductDetail = ({ product, onBack, onAddToCart }) => {
                                 <Plus size={16} />
                             </button>
                         </div>
-                        <button className="btn btn-primary" style={styles.addBtn} onClick={handleAddToCart}>
-                            <ShoppingCart size={20} /> Agregar {quantity > 1 ? `(${quantity})` : ''}
+
+                        <button className="btn" style={styles.addToCartBtn} onClick={handleAddToCart}>
+                            <ShoppingCart size={20} /> AGREGAR AL CARRITO
                         </button>
                     </div>
 
-                    <div style={styles.meta}>
-                        <div style={styles.metaItem}>
-                            <ShieldCheck size={18} color="var(--primary)" />
-                            <span>Garantía de calidad ProtonShop</span>
-                        </div>
-                    </div>
+                    <button className="btn" style={styles.buyNowBtn} onClick={() => { handleAddToCart(); /* Trigger checkout flow ideally */ }}>
+                        <ShoppingCart size={20} /> COMPRAR AHORA
+                    </button>
 
                     <div style={styles.descriptionBox}>
                         <h3>Detalles del Producto</h3>
@@ -171,7 +188,45 @@ const ProductDetail = ({ product, onBack, onAddToCart }) => {
                     </div>
                 </div>
             </div>
-        </div>
+
+
+            {/* Related Products Section */}
+            {
+                relatedProducts.length > 0 && (
+                    <div style={{ marginTop: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--border)' }}>
+                        <h2 style={{ fontSize: '1.8rem', marginBottom: '1.5rem', color: 'var(--text-main)' }}>Productos Relacionados</h2>
+                        <div style={styles.relatedGrid}>
+                            {relatedProducts.map(p => (
+                                <ProductCard
+                                    key={p.id}
+                                    product={p}
+                                    onAddToCart={() => onAddToCart(p)}
+                                    onSelect={() => {
+                                        // Hacky way to update view since we are inside ProductDetail
+                                        // Ideally we bubble up a "onSelectProduct" event
+                                        // For now, we will assume onBack resets specific state but we need to switch product
+                                        // We can reuse the same mechanism App uses.
+                                        // Given the prop structure, we might need to rely on parent re-rendering.
+                                        // Let's scroll to top for now.
+                                        window.scrollTo(0, 0);
+                                        // We need to trigger a product change. 
+                                        // Since onAddToCart works, we need a similar prop for selection or rely on App.jsx state update
+                                        // But wait, the parent App.jsx passes 'product' based on state.
+                                        // If we click a card here, we need to tell App.jsx to change the selectedProduct.
+                                        // We can add a onSelectRelated prop or pass it through.
+                                        // Let's modify App.jsx to pass onSelect as well or just reuse logic if available.
+                                        // Actually, let's bubble up a new event or use a dirty reload if needed, 
+                                        // BUT better: The ProductCard expects onSelect. 
+                                        // PROPOSAL: We add onSelectProduct to ProductDetail props.
+                                        if (onSelectProduct) onSelectProduct(p);
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 
@@ -200,10 +255,6 @@ const styles = {
         gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
         gap: '4rem',
         alignItems: 'start'
-    },
-    imageSection: {
-        position: 'sticky',
-        top: '100px'
     },
     mainImageContainer: {
         position: 'relative',
@@ -328,32 +379,79 @@ const styles = {
     addBtn: {
         flex: 1,
         minWidth: '200px',
-        padding: '1rem 2rem',
-        fontSize: '1.1rem',
-        justifyContent: 'center'
-    },
-    meta: {
-        display: 'flex',
-        gap: '2rem',
-        padding: '1.5rem 0',
-        borderTop: '1px solid var(--border)',
-        borderBottom: '1px solid var(--border)'
-    },
-    metaItem: {
+        padding: '1rem',
+        fontSize: '1rem',
         display: 'flex',
         alignItems: 'center',
-        gap: '0.75rem',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        backgroundColor: '#fbc531', // Gold
+        color: '#000',
+        border: 'none',
+        borderRadius: '50px',
+        fontWeight: '800',
+        cursor: 'pointer',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        transition: 'transform 0.2s'
+    },
+    buyNowBtn: {
+        width: '100%',
+        padding: '1rem',
+        fontSize: '1.2rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        backgroundColor: '#ce1126', // Red
+        color: 'white',
+        border: 'none',
+        borderRadius: '50px',
+        fontWeight: '800',
+        cursor: 'pointer',
+        boxShadow: '0 4px 15px rgba(206, 17, 38, 0.4)',
+        animation: 'pulse 2s infinite'
+    },
+    addToCartBtn: { // Renaming for clarity if needed, but keeping consistent with usage above
+        flex: 1,
+        padding: '0.8rem',
         fontSize: '0.9rem',
-        color: 'var(--text-muted)'
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        backgroundColor: '#fbc531',
+        color: '#2d3436',
+        borderRadius: '50px',
+        fontWeight: '800',
+        border: 'none',
+        cursor: 'pointer'
+    },
+    bannerSection: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem',
+        marginTop: '0.5rem',
+        marginBottom: '1rem'
+    },
+    infoBanner: {
+        width: '100%',
+        height: 'auto',
+        borderRadius: '12px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
     },
     descriptionBox: {
-        marginTop: '1rem'
+        marginTop: '2rem'
     },
     description: {
         lineHeight: '1.8',
         color: 'var(--text-muted)',
         fontSize: '1.05rem',
         whiteSpace: 'pre-line'
+    },
+    relatedGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: '2rem'
     }
 };
 

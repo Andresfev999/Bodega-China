@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Clock, CheckCircle, Truck, AlertCircle, ChevronRight, ShoppingBag } from 'lucide-react';
 import { getUserOrders } from '../store';
+import { formatCurrency } from '../utils';
 
 const CustomerOrders = ({ user, onBack }) => {
     const [orders, setOrders] = useState([]);
@@ -89,15 +90,15 @@ const CustomerOrders = ({ user, onBack }) => {
                                     {order.shipping_cost > 0 && (
                                         <>
                                             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block' }}>
-                                                Subtotal: ${(order.total - order.shipping_cost).toLocaleString()}
+                                                Subtotal: {formatCurrency(order.total - order.shipping_cost)}
                                             </span>
                                             <span style={{ fontSize: '0.85rem', color: 'var(--primary)', display: 'block' }}>
-                                                Envío: +${Number(order.shipping_cost).toLocaleString()}
+                                                Envío: +{formatCurrency(Number(order.shipping_cost))}
                                             </span>
                                         </>
                                     )}
                                     <span style={styles.totalLabel}>Total:</span>
-                                    <span style={styles.totalVal}>${order.total.toLocaleString()}</span>
+                                    <span style={styles.totalVal}>{formatCurrency(order.total)}</span>
                                 </div>
                             </div>
 
