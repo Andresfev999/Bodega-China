@@ -305,7 +305,7 @@ function App() {
 
         </div>
         <div style={{ textAlign: 'center', marginTop: '1rem', opacity: 0.5 }}>
-          <a href="https://tu-admin-url.vercel.app" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textDecoration: 'none' }}>
+          <a href="https://bodegachinagestion.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textDecoration: 'none' }}>
             Gestionar Tienda
           </a>
         </div>
